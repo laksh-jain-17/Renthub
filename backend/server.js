@@ -8,7 +8,6 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static('uploads'));
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
