@@ -1,7 +1,4 @@
-const express = require('express');
-const router = express.Router();
-const path = require('path');
-const multer = require('multer');
+const { upload, uploadToGCS } = require('../middleware/upload');
 const Item = require('../models/Item');
 const Booking = require('../models/Booking');
 const { authenticateToken } = require('../middleware/auth');
@@ -22,9 +19,9 @@ const upload = multer({
   }
 });
 
-router.post('/add', authenticateToken, upload.single('image'), async (req, res) => {
+router.post('/add', authenticateToken, upload.single('image'), uploadToGCS, async (req, res) => {
   try {
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+    const imageUrl = req.file ? req.file.gcsUrl : null;
 
     const newItem = new Item({
       owner: req.body.owner,
