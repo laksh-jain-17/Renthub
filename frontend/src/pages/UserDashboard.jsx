@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 const GREEN = '#32be8f';
 const GREEN_DARK = '#249c72';
 const GREEN_LIGHT = '#e6fffa';
-const API = 'http://localhost:5000';
+const API = 'https://renthub-backend-510573568102.us-central1.run.app';
 
 const NavBar = ({ activeTab, setActiveTab, onLogout }) => {
   const tabs = [
@@ -82,7 +82,7 @@ const BrowseItems = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/items/all')
+    fetch('https://renthub-backend-510573568102.us-central1.run.app/api/items/all')
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(setItems)
       .catch(() => setError('Failed to load items'))
@@ -206,7 +206,7 @@ const MyBookings = () => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userId = localStorage.getItem('userId');
-    fetch(`http://localhost:5000/api/bookings/user/${userId}`, {
+    fetch(`https://renthub-backend-510573568102.us-central1.run.app/api/bookings/user/${userId}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(r => r.ok ? r.json() : [])
@@ -351,7 +351,7 @@ const MyListings = () => {
     const token = localStorage.getItem('token');
     const userId = localStorage.getItem('userId');
     try {
-      const r = await fetch(`http://localhost:5000/api/items/owner/${userId}`, {
+      const r = await fetch(`https://renthub-backend-510573568102.us-central1.run.app/api/items/owner/${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (r.ok) setItems(await r.json());
@@ -382,7 +382,7 @@ const MyListings = () => {
         data.append('image', imageFile);
       }
 
-      const r = await fetch('http://localhost:5000/api/items/add', {
+      const r = await fetch('https://renthub-backend-510573568102.us-central1.run.app/api/items/add', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: data
@@ -403,7 +403,7 @@ const MyListings = () => {
     if (!window.confirm('Delete this item?')) return;
     const token = localStorage.getItem('token');
     try {
-      const r = await fetch(`http://localhost:5000/api/items/${itemId}`, {
+      const r = await fetch(`https://renthub-backend-510573568102.us-central1.run.app/api/items/${itemId}`, {
         method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
       });
       if (r.ok) setItems(prev => prev.filter(i => i._id !== itemId));
@@ -535,7 +535,7 @@ const RentalBookings = () => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userId = localStorage.getItem('userId');
-    fetch(`http://localhost:5000/api/bookings/owner/${userId}`, {
+    fetch(`https://renthub-backend-510573568102.us-central1.run.app/api/bookings/owner/${userId}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(r => r.ok ? r.json() : [])
@@ -590,7 +590,7 @@ const Earnings = () => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userId = localStorage.getItem('userId');
-    fetch(`http://localhost:5000/api/bookings/owner/${userId}`, {
+    fetch(`https://renthub-backend-510573568102.us-central1.run.app/api/bookings/owner/${userId}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(r => r.ok ? r.json() : [])
@@ -668,7 +668,7 @@ const Payments = () => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userId = localStorage.getItem('userId');
-    fetch(`http://localhost:5000/api/bookings/user/${userId}`, {
+    fetch(`https://renthub-backend-510573568102.us-central1.run.app/api/bookings/user/${userId}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(r => r.ok ? r.json() : [])
@@ -751,7 +751,7 @@ const Profile = () => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userId = localStorage.getItem('userId');
-    fetch(`http://localhost:5000/api/users/${userId}`, { headers: { 'Authorization': `Bearer ${token}` } })
+    fetch(`https://renthub-backend-510573568102.us-central1.run.app/api/users/${userId}`, { headers: { 'Authorization': `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data) {
@@ -766,7 +766,7 @@ const Profile = () => {
     e.preventDefault();
     const token = localStorage.getItem('token');
     const userId = localStorage.getItem('userId');
-    const r = await fetch(`http://localhost:5000/api/users/${userId}`, {
+    const r = await fetch(`https://renthub-backend-510573568102.us-central1.run.app/api/users/${userId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify(formData)
@@ -785,7 +785,7 @@ const Profile = () => {
     if (pwData.newPassword.length < 6) return setMsg({ type: 'err', text: 'Min 6 characters' });
     const token = localStorage.getItem('token');
     const userId = localStorage.getItem('userId');
-    const r = await fetch(`http://localhost:5000/api/users/${userId}/change-password`, {
+    const r = await fetch(`https://renthub-backend-510573568102.us-central1.run.app/api/users/${userId}/change-password`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ currentPassword: pwData.currentPassword, newPassword: pwData.newPassword })

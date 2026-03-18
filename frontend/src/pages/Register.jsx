@@ -29,7 +29,7 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch('https://renthub-backend-510573568102.us-central1.run.app/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

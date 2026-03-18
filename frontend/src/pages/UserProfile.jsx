@@ -34,7 +34,7 @@ const UserProfile = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/users/${userId}`, {
+      const response = await fetch(`https://renthub-backend-510573568102.us-central1.run.app/api/users/${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -66,7 +66,7 @@ const UserProfile = () => {
     const userId = localStorage.getItem('userId');
 
     try {
-      const response = await fetch(`http://localhost:5000/api/users/${userId}`, {
+      const response = await fetch(`https://renthub-backend-510573568102.us-central1.run.app/api/users/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -109,7 +109,7 @@ const UserProfile = () => {
     const userId = localStorage.getItem('userId');
 
     try {
-      const response = await fetch(`http://localhost:5000/api/users/${userId}/change-password`, {
+      const response = await fetch(`https://renthub-backend-510573568102.us-central1.run.app/api/users/${userId}/change-password`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

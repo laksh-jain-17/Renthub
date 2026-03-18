@@ -18,7 +18,7 @@ const ProductDetail = () => {
 
   const fetchItemDetails = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/items/${id}`);
+      const response = await fetch(`https://renthub-backend-510573568102.us-central1.run.app/api/items/${id}`);
       if (response.ok) {
         const data = await response.json();
         setItem(data);
@@ -116,7 +116,7 @@ const ProductDetail = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/bookings/create-checkout', {
+      const response = await fetch('https://renthub-backend-510573568102.us-central1.run.app/api/bookings/create-checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
