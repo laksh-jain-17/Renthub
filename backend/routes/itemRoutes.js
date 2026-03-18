@@ -1,28 +1,14 @@
-const { upload, uploadToGCS } = require('../middleware/upload');
+const express = require('express');
+const router = express.Router();
 const Item = require('../models/Item');
 const Booking = require('../models/Booking');
 const { authenticateToken } = require('../middleware/auth');
 const { getItemRecommendations } = require('../utils/recommendationSystem');
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'uploads/'),
-  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
-});
-const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const allowed = /jpeg|jpg|png|webp/;
-    const valid = allowed.test(path.extname(file.originalname).toLowerCase()) &&
-                  allowed.test(file.mimetype);
-    valid ? cb(null, true) : cb(new Error('Only image files are allowed'));
-  }
-});
+const { upload, uploadToGCS } = require('../middleware/upload');
 
 router.post('/add', authenticateToken, upload.single('image'), uploadToGCS, async (req, res) => {
   try {
     const imageUrl = req.file ? req.file.gcsUrl : null;
-
     const newItem = new Item({
       owner: req.body.owner,
       title: req.body.title,
@@ -32,7 +18,6 @@ router.post('/add', authenticateToken, upload.single('image'), uploadToGCS, asyn
       images: imageUrl ? [imageUrl] : [],
       rating: 4.5 + Math.random() * 0.5
     });
-
     const savedItem = await newItem.save();
     res.status(201).json(savedItem);
   } catch (err) {
@@ -104,5 +89,4 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
-
 module.exports = router;
