@@ -25,7 +25,7 @@ const adminRoutes   = require('./routes/adminRoutes');
 app.use('/api/auth',     authRoutes);
 app.use('/api/users',    userRoutes);
 app.use('/api/items',    itemRoutes);
-app.use('/api/bookings', bookingRoutes);
+//app.use('/api/bookings', bookingRoutes);
 app.use('/api/admin',    adminRoutes);
 
 const PORT = process.env.PORT || 10000;
