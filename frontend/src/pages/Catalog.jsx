@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-const API = 'https://renthub-backend-510573568102.us-central1.run.app';
+//const API = 'https://renthub-backend-510573568102.us-central1.run.app';//
 
 const Catalog = () => {
   const navigate = useNavigate();
