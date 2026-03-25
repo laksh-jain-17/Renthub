@@ -4,7 +4,8 @@ import { Link, useNavigate } from 'react-router-dom';
 const GREEN = '#32be8f';
 const GREEN_DARK = '#249c72';
 const GREEN_LIGHT = '#e6fffa';
-const API = 'https://renthub-backend-510573568102.us-central1.run.app';
+import API_BASE_URL from '../config';
+const API = API_BASE_URL;
 
 const NavBar = ({ activeTab, setActiveTab, onLogout }) => {
   const tabs = [
