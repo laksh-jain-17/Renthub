@@ -96,7 +96,7 @@ const Catalog = () => {
         }}>RENTHUB</Link>
         <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
           <Link to="/catalog" style={{
-            padding: '10px 25px',
+            padding: '10px 26px',
             color: '#32be8f',
             textDecoration: 'none',
             fontWeight: '600'
