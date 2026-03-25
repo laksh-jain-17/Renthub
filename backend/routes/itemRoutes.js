@@ -7,9 +7,9 @@ const { getItemRecommendations } = require('../utils/recommendationSystem');
 
 const { upload, saveFileLocally } = require('../middleware/upload');
 
-router.post('/add', authenticateToken, upload.single('image'), uploadToGCS, async (req, res) => {
+router.post('/add', authenticateToken, upload.single('image'), saveFileLocally, async (req, res) => {
   try {
-    const imageUrl = req.file ? req.file.gcsUrl : null;
+    const imageUrl = req.file ? req.file.localUrl : null;
     const newItem = new Item({
       owner: req.body.owner,
       title: req.body.title,
