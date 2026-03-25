@@ -1,13 +1,24 @@
 const multer = require('multer');
-const { Storage } = require('@google-cloud/storage');
 const path = require('path');
+const fs = require('fs');
 
-const storage = new Storage();
-const bucket = storage.bucket(process.env.GCS_BUCKET_NAME);
+const uploadDir = 'uploads/';
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
-// Keep multer in memory instead of disk
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = `${Date.now()}${path.extname(file.originalname)}`;
+    cb(null, uniqueName);
+  }
+});
+
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowed = /jpeg|jpg|png|webp/;
@@ -18,25 +29,11 @@ const upload = multer({
   }
 });
 
-const uploadToGCS = (req, res, next) => {
+// Replaces uploadToGCS — just sets a local URL instead
+const saveFileLocally = (req, res, next) => {
   if (!req.file) return next();
-
-  const filename = `${Date.now()}${path.extname(req.file.originalname)}`;
-  const blob = bucket.file(filename);
-
-  const blobStream = blob.createWriteStream({
-    resumable: false,
-    contentType: req.file.mimetype,
-  });
-
-  blobStream.on('error', (err) => next(err));
-
-  blobStream.on('finish', () => {
-    // Public URL of the uploaded file
-    req.file.gcsUrl = `https://storage.googleapis.com/${process.env.GCS_BUCKET_NAME}/${filename}`;
-    next();
-  });
-
-  blobStream.end(req.file.buffer);
+  req.file.localUrl = `/uploads/${req.file.filename}`;
+  next();
 };
-module.exports = { upload, uploadToGCS };
+
+module.exports = { upload, saveFileLocally };
