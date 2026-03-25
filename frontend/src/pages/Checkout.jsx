@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import API_BASE_URL from '../config';
 
 const Checkout = () => {
   const { state } = useLocation();
@@ -17,7 +18,7 @@ const Checkout = () => {
     const fetchUser = async () => {
       const userId = localStorage.getItem('userId');
       const token = localStorage.getItem('token');
-      const response = await fetch(`https://renthub-backend-510573568102.us-central1.run.app/api/users/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -56,7 +57,7 @@ const Checkout = () => {
     };
 
     try {
-      const response = await fetch('https://renthub-backend-510573568102.us-central1.run.app/api/bookings/create', {
+      const response = await fetch(`${API_BASE_URL}/api/bookings/create`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json', 
