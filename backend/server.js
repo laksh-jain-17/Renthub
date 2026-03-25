@@ -6,7 +6,10 @@ require('dotenv').config();
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  credentials: false
+}));
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
