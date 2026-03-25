@@ -546,7 +546,7 @@ const PaymentMonitoring = () => {
   const fetchPayments = async () => {
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch('${API_BASE_URL}/api/admin/payments', {
+      const response = await fetch(`${API_BASE_URL}/api/admin/payments`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -682,7 +682,7 @@ const SupportTickets = () => {
   const fetchTickets = async () => {
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch('${API_BASE_URL}/api/admin/tickets', {
+      const response = await fetch(`${API_BASE_URL}/api/admin/tickets`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -701,7 +701,7 @@ const SupportTickets = () => {
     const token = localStorage.getItem('token');
     
     try {
-      const response = await fetch('${API_BASE_URL}/api/admin/tickets', {
+      const response = await fetch(`${API_BASE_URL}/api/admin/tickets`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -996,7 +996,7 @@ const Analytics = () => {
   const fetchAnalytics = async () => {
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch('${API_BASE_URL}/api/admin/analytics', {
+      const response = await fetch(`${API_BASE_URL}/api/admin/analytics`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
