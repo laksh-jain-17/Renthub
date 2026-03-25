@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
+import API_BASE_URL from '../config';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -13,7 +14,7 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch('https://renthub-backend-510573568102.us-central1.run.app/api/admin/users', {
+      const response = await fetch(`${API_BASE_URL}/api/admin/users`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -30,7 +31,7 @@ const UserManagement = () => {
   const fetchUserDetails = async (userId) => {
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`https://renthub-backend-510573568102.us-central1.run.app/api/admin/user-details/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/user-details/${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -47,7 +48,7 @@ const UserManagement = () => {
     const token = localStorage.getItem('token');
     
     try {
-      const response = await fetch(`https://renthub-backend-510573568102.us-central1.run.app/api/admin/users/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -64,7 +65,7 @@ const UserManagement = () => {
   const handleKycAction = async (userId, status) => {
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`https://renthub-backend-510573568102.us-central1.run.app/api/admin/kyc-action/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/kyc-action/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -392,7 +393,7 @@ const PropertyVerification = () => {
   const fetchPendingItems = async () => {
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch('https://renthub-backend-510573568102.us-central1.run.app/api/admin/items/pending', {
+      const response = await fetch(`${API_BASE_URL}/api/admin/items/pending`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -409,7 +410,7 @@ const PropertyVerification = () => {
   const handleVerify = async (itemId) => {
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`https://renthub-backend-510573568102.us-central1.run.app/api/admin/items/${itemId}/verify`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/items/${itemId}/verify`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -425,7 +426,7 @@ const PropertyVerification = () => {
   const handleReject = async (itemId) => {
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`https://renthub-backend-510573568102.us-central1.run.app/api/admin/items/${itemId}/reject`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/items/${itemId}/reject`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -545,7 +546,7 @@ const PaymentMonitoring = () => {
   const fetchPayments = async () => {
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch('https://renthub-backend-510573568102.us-central1.run.app/api/admin/payments', {
+      const response = await fetch('${API_BASE_URL}/api/admin/payments', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -681,7 +682,7 @@ const SupportTickets = () => {
   const fetchTickets = async () => {
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch('https://renthub-backend-510573568102.us-central1.run.app/api/admin/tickets', {
+      const response = await fetch('${API_BASE_URL}/api/admin/tickets', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -700,7 +701,7 @@ const SupportTickets = () => {
     const token = localStorage.getItem('token');
     
     try {
-      const response = await fetch('https://renthub-backend-510573568102.us-central1.run.app/api/admin/tickets', {
+      const response = await fetch('${API_BASE_URL}/api/admin/tickets', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -723,7 +724,7 @@ const SupportTickets = () => {
   const handleUpdateStatus = async (ticketId, status) => {
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`https://renthub-backend-510573568102.us-central1.run.app/api/admin/tickets/${ticketId}/status`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/tickets/${ticketId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -995,7 +996,7 @@ const Analytics = () => {
   const fetchAnalytics = async () => {
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch('https://renthub-backend-510573568102.us-central1.run.app/api/admin/analytics', {
+      const response = await fetch('${API_BASE_URL}/api/admin/analytics', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
