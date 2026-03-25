@@ -18,7 +18,7 @@ const ForgotPassword = () => {
     setError('');
     setLoading(true);
     try {
-      const response = await fetch('https://renthub-backend-510573568102.us-central1.run.app/api/auth/forgot-password', {
+      const response = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
@@ -52,7 +52,7 @@ const ForgotPassword = () => {
 
     setLoading(true);
     try {
-      const response = await fetch('https://renthub-backend-510573568102.us-central1.run.app/api/auth/reset-password', {
+      const response = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, newPassword })
