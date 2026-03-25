@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import API_BASE_URL from '../config';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -18,7 +19,7 @@ const ProductDetail = () => {
 
   const fetchItemDetails = async () => {
     try {
-      const response = await fetch(`https://renthub-backend-510573568102.us-central1.run.app/api/items/${id}`);
+      const response = await fetch(`${API_BASE_URL}/api/items/${id}`);
       if (response.ok) {
         const data = await response.json();
         setItem(data);
@@ -116,7 +117,7 @@ const ProductDetail = () => {
     }
 
     try {
-      const response = await fetch('https://renthub-backend-510573568102.us-central1.run.app/api/bookings/create-checkout', {
+      const response = await fetch(`${API_BASE_URL}/api/bookings/create-checkout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
