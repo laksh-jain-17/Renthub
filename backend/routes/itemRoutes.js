@@ -4,7 +4,8 @@ const Item = require('../models/Item');
 const Booking = require('../models/Booking');
 const { authenticateToken } = require('../middleware/auth');
 const { getItemRecommendations } = require('../utils/recommendationSystem');
-const { upload, uploadToGCS } = require('../middleware/upload');
+
+const { upload, saveFileLocally } = require('../middleware/upload');
 
 router.post('/add', authenticateToken, upload.single('image'), uploadToGCS, async (req, res) => {
   try {
