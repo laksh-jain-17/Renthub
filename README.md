@@ -4,3 +4,4 @@ Beneficial for buyers who want hands on experience on items by purchasing on ren
 It provides flexible time duration of renting items.
 It reduces the burden of idle use problem.
 All users can be buyer and seller.
+
