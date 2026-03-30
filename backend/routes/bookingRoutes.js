@@ -17,10 +17,8 @@ router.post('/create', authenticateToken, async (req, res) => {
       paymentMethod,
       deliveryCharge
     } = req.body;
-
     const item = await Item.findById(itemId);
     if (!item) return res.status(404).json({ message: 'Item not found' });
-
     const booking = new Booking({
       item: itemId,
       renter: req.user.id,
@@ -35,7 +33,6 @@ router.post('/create', authenticateToken, async (req, res) => {
       status: 'active',
       paymentId: `PAY-${Date.now()}`
     });
-
     await booking.save();
     res.status(201).json({ success: true, booking });
   } catch (err) {
@@ -47,10 +44,8 @@ router.post('/create', authenticateToken, async (req, res) => {
 router.post('/create-checkout', authenticateToken, async (req, res) => {
   try {
     const { itemId, startDate, endDate, totalPrice } = req.body;
-
     const item = await Item.findById(itemId);
     if (!item) return res.status(404).json({ message: 'Item not found' });
-
     const booking = new Booking({
       item: itemId,
       renter: req.user.id,
@@ -61,11 +56,23 @@ router.post('/create-checkout', authenticateToken, async (req, res) => {
       status: 'active',
       paymentId: `PAY-${Date.now()}`
     });
-
     await booking.save();
     res.status(201).json({ success: true, booking });
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/bookings/item/:itemId — booked date ranges for calendar (no auth needed)
+router.get('/item/:itemId', async (req, res) => {
+  try {
+    const bookings = await Booking.find({
+      item: req.params.itemId,
+      status: { $in: ['active', 'confirmed', 'pending'] }
+    }).select('startDate endDate -_id');
+    res.json(bookings);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
