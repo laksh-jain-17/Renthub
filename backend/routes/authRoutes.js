@@ -2,24 +2,11 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
 const User = require('../models/User');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'lakshjain1705@gmail.com';
 const ADMIN_PASSWORD = 'Laksh#1234';
-
-const otpStore = {};
-
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
-
-const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 // ─── REGISTER ───────────────────────────────────────────────
 router.post('/register', async (req, res) => {
@@ -50,17 +37,18 @@ router.post('/login', async (req, res) => {
     const { email, password } = req.body;
     const cleanEmail = email.toLowerCase();
 
+    // Admin direct login (no OTP)
     if (cleanEmail === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      const otp = generateOTP();
-      otpStore[cleanEmail] = { otp, expiresAt: Date.now() + 5 * 60 * 1000 };
-
-      await transporter.sendMail({
-        from: `"Renthub Admin" <${process.env.EMAIL_USER}>`,
-        to: ADMIN_EMAIL,
-        subject: 'Your Renthub Admin OTP',
-        html: `<h1>${otp}</h1><p>Expires in 5 mins.</p>`
+      const token = jwt.sign(
+        { id: 'admin', email: cleanEmail, roles: ['admin'] },
+        JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+      return res.json({
+        success: true,
+        token,
+        user: { id: 'admin', email: cleanEmail, name: 'Admin', roles: ['admin'] }
       });
-      return res.json({ requiresOTP: true, message: 'OTP sent to admin email' });
     }
 
     const user = await User.findOne({ email: cleanEmail });
@@ -69,26 +57,16 @@ router.post('/login', async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
-    const token = jwt.sign({ id: user._id, email: user.email, roles: user.roles }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ success: true, token, user: { id: user._id, email: user.email, name: user.name, roles: user.roles } });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// ─── VERIFY ADMIN OTP ────────────────────────────────────────
-router.post('/verify-otp', async (req, res) => {
-  try {
-    const { email, otp } = req.body;
-    const cleanEmail = email.toLowerCase();
-    const record = otpStore[cleanEmail];
-
-    if (!record || Date.now() > record.expiresAt) return res.status(400).json({ message: 'OTP invalid or expired' });
-    if (record.otp !== otp) return res.status(400).json({ message: 'Invalid OTP' });
-
-    delete otpStore[cleanEmail];
-    const token = jwt.sign({ id: 'admin', email: cleanEmail, roles: ['admin'] }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ success: true, token, user: { id: 'admin', email: cleanEmail, name: 'Admin', roles: ['admin'] } });
+    const token = jwt.sign(
+      { id: user._id, email: user.email, roles: user.roles },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+    res.json({
+      success: true,
+      token,
+      user: { id: user._id, email: user.email, name: user.name, roles: user.roles }
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
