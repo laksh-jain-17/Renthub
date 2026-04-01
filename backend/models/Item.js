@@ -31,9 +31,15 @@ const itemSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  // CHANGE 1: Set default to 0.0 so it starts empty
   rating: {
     type: Number,
-    default: 5.0
+    default: 0.0 
+  },
+  // CHANGE 2: Add this to track the count of reviews
+  numReviews: {
+    type: Number,
+    default: 0
   },
   available: {
     type: Boolean,
