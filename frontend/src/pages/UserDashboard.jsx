@@ -7,6 +7,18 @@ const GREEN_LIGHT = '#e6fffa';
 import API_BASE_URL from '../config';
 const API = API_BASE_URL;
 
+// ✅ Real star rating display
+const StarRating = ({ rating, size = '0.9rem' }) => {
+  if (!rating || rating === 0) return <span style={{ color: '#bbb', fontSize: '0.78rem' }}>No reviews</span>;
+  return (
+    <span style={{ display: 'inline-flex', gap: '1px' }}>
+      {[1,2,3,4,5].map(i => (
+        <span key={i} style={{ color: rating >= i ? '#facc15' : '#e0e0e0', fontSize: size }}>★</span>
+      ))}
+    </span>
+  );
+};
+
 const NavBar = ({ activeTab, setActiveTab, onLogout }) => {
   const tabs = [
     { key: 'browse',          label: 'Browse' },
@@ -158,8 +170,9 @@ const BrowseItems = () => {
                 <span style={{ color: '#999', fontSize: '0.78rem', textTransform: 'uppercase', fontWeight: '600' }}>
                   {item.category}
                 </span>
-                <span style={{ fontSize: '0.88rem', fontWeight: '600', color: '#333' }}>
-                  ★ {item.rating || '5.0'}
+                <span style={{ display:'flex', alignItems:'center', gap:'3px' }}>
+                  <StarRating rating={item.rating} />
+                  {item.numReviews > 0 && <span style={{ color:'#aaa', fontSize:'0.75rem' }}>({item.numReviews})</span>}
                 </span>
               </div>
               <h3 style={{ fontSize: '1.1rem', marginBottom: '8px', color: '#333', minHeight: '44px' }}>
@@ -201,8 +214,10 @@ const BrowseItems = () => {
 };
 
 const MyBookings = () => {
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [reviewed, setReviewed] = useState({}); // bookingId -> true if already reviewed
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -211,7 +226,25 @@ const MyBookings = () => {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(r => r.ok ? r.json() : [])
-      .then(setBookings)
+      .then(async (data) => {
+        setBookings(data);
+        // Check which completed bookings are already reviewed
+        const reviewedMap = {};
+        for (const b of data) {
+          if (b.status === 'completed') {
+            try {
+              const res = await fetch(`${API}/api/reviews/can-review/${b._id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              if (res.ok) {
+                const { canReview } = await res.json();
+                reviewedMap[b._id] = !canReview;
+              }
+            } catch {}
+          }
+        }
+        setReviewed(reviewedMap);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -243,6 +276,24 @@ const MyBookings = () => {
                   <strong>Delivery:</strong> {b.deliveryType || 'Standard'}
                 </p>
                 <StatusBadge status={b.status} />
+                {/* ✅ Rate this item button for completed bookings */}
+                {b.status === 'completed' && (
+                  reviewed[b._id] ? (
+                    <p style={{ marginTop: '12px', fontSize: '0.82rem', color: GREEN, fontWeight: '600' }}>✓ Reviewed</p>
+                  ) : (
+                    <button
+                      onClick={() => navigate(`/item/${b.item?._id}`)}
+                      style={{
+                        marginTop: '12px', width: '100%', padding: '9px',
+                        background: GREEN_LIGHT, color: GREEN,
+                        border: `1px solid ${GREEN}`, borderRadius: '8px',
+                        cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem'
+                      }}
+                    >
+                      ★ Rate this item
+                    </button>
+                  )
+                )}
               </div>
             </div>
           ))}
