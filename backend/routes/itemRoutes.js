@@ -1,10 +1,13 @@
+// backend/routes/itemRoutes.js
+// Only change: removed `rating: 4.5 + Math.random() * 0.5` from the /add route
+// Rating now starts at 0 and gets updated by the review system
+
 const express = require('express');
 const router = express.Router();
 const Item = require('../models/Item');
 const Booking = require('../models/Booking');
 const { authenticateToken } = require('../middleware/auth');
 const { getItemRecommendations } = require('../utils/recommendationSystem');
-
 const { upload, saveFileLocally } = require('../middleware/upload');
 
 router.post('/add', authenticateToken, upload.single('image'), saveFileLocally, async (req, res) => {
@@ -17,7 +20,7 @@ router.post('/add', authenticateToken, upload.single('image'), saveFileLocally, 
       pricePerDay: req.body.pricePerDay,
       description: req.body.description,
       images: imageUrl ? [imageUrl] : [],
-      rating: 4.5 + Math.random() * 0.5
+      // ✅ no fake rating — starts at 0, updated by reviews
     });
     const savedItem = await newItem.save();
     res.status(201).json(savedItem);
@@ -37,11 +40,7 @@ router.get('/all', async (req, res) => {
 
 router.get('/recommendations/:userId', authenticateToken, async (req, res) => {
   try {
-    const recommendations = await getItemRecommendations(
-      req.params.userId,
-      Booking,
-      Item
-    );
+    const recommendations = await getItemRecommendations(req.params.userId, Booking, Item);
     res.json(recommendations);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -60,9 +59,7 @@ router.get('/owner/:ownerId', authenticateToken, async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const item = await Item.findById(req.params.id).populate('owner', 'name email phone');
-    if (!item) {
-      return res.status(404).json({ message: 'Item not found' });
-    }
+    if (!item) return res.status(404).json({ message: 'Item not found' });
     res.json(item);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -71,14 +68,10 @@ router.get('/:id', async (req, res) => {
 
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
-    const updatedItem = await Item.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
+    const updatedItem = await Item.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json(updatedItem);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(400).json({ message: err.message });
   }
 });
 
@@ -90,4 +83,5 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+
 module.exports = router;
