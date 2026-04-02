@@ -5,10 +5,7 @@ require('dotenv').config();
 
 const app = express();
 
-app.use(cors({
-  origin: '*',
-  credentials: false
-}));
+app.use(cors({ origin: '*', credentials: false }));
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
@@ -21,12 +18,14 @@ const userRoutes    = require('./routes/userRoutes');
 const itemRoutes    = require('./routes/itemRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const adminRoutes   = require('./routes/adminRoutes');
+const reviewRoutes  = require('./routes/reviewRoutes'); // ✅ new
 
 app.use('/api/auth',     authRoutes);
 app.use('/api/users',    userRoutes);
 app.use('/api/items',    itemRoutes);
-//app.use('/api/bookings', bookingRoutes);
+app.use('/api/bookings', bookingRoutes); // ✅ uncommented
 app.use('/api/admin',    adminRoutes);
+app.use('/api/reviews',  reviewRoutes);  // ✅ new
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
