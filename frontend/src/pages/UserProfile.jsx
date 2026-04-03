@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API_BASE_URL from '../config';
+import { authFetch, logout } from '../utils/auth';
 
 const UserProfile = () => {
   const navigate = useNavigate();
@@ -26,18 +27,15 @@ const UserProfile = () => {
   }, []);
 
   const fetchUserProfile = async () => {
-    const token = localStorage.getItem('token');
     const userId = localStorage.getItem('userId');
 
-    if (!token || !userId) {
+    if (!userId) {
       navigate('/login');
       return;
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await authFetch(`${API_BASE_URL}/api/users/${userId}`);
 
       if (response.ok) {
         const data = await response.json();
@@ -63,16 +61,11 @@ const UserProfile = () => {
     setError('');
     setSuccess('');
 
-    const token = localStorage.getItem('token');
     const userId = localStorage.getItem('userId');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
+      const response = await authFetch(`${API_BASE_URL}/api/users/${userId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify(formData)
       });
 
@@ -106,16 +99,11 @@ const UserProfile = () => {
       return;
     }
 
-    const token = localStorage.getItem('token');
     const userId = localStorage.getItem('userId');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/users/${userId}/change-password`, {
+      const response = await authFetch(`${API_BASE_URL}/api/users/${userId}/change-password`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({
           currentPassword: passwordData.currentPassword,
           newPassword: passwordData.newPassword
