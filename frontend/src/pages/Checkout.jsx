@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import API_BASE_URL from '../config';
+import { authFetch } from '../utils/auth';
 
 const Checkout = () => {
   const { state } = useLocation();
@@ -17,10 +18,7 @@ const Checkout = () => {
   useEffect(() => {
     const fetchUser = async () => {
       const userId = localStorage.getItem('userId');
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await authFetch(`${API_BASE_URL}/api/users/${userId}`);
       const data = await response.json();
       setUser(data);
     };
@@ -57,12 +55,8 @@ const Checkout = () => {
     };
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/bookings/create`, {
+      const response = await authFetch(`${API_BASE_URL}/api/bookings/create`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'Authorization': `Bearer ${localStorage.getItem('token')}` 
-        },
         body: JSON.stringify(payload)
       });
 
