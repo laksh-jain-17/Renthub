@@ -13,7 +13,8 @@ const UserManagement = () => {
   }, []);
 
   const fetchUsers = async () => {
-        const response = await authFetch(`${API_BASE_URL}/api/admin/users`);
+    try {
+      const response = await authFetch(`${API_BASE_URL}/api/admin/users`);
       if (response.ok) {
         const data = await response.json();
         setUsers(data);
@@ -26,7 +27,8 @@ const UserManagement = () => {
   };
 
   const fetchUserDetails = async (userId) => {
-        const response = await authFetch(`${API_BASE_URL}/api/admin/user-details/${userId}`);
+    try {
+      const response = await authFetch(`${API_BASE_URL}/api/admin/user-details/${userId}`);
       if (response.ok) {
         const data = await response.json();
         setSelectedUser(data);
@@ -41,7 +43,7 @@ const UserManagement = () => {
     try {
       const response = await authFetch(`${API_BASE_URL}/api/admin/users/${userId}`, {
         method: 'DELETE'
-        });
+      });
       if (response.ok) {
         setUsers(users.filter(u => u._id !== userId));
         setSelectedUser(null);
@@ -57,7 +59,7 @@ const UserManagement = () => {
       const response = await authFetch(`${API_BASE_URL}/api/admin/kyc-action/${userId}`, {
         method: 'PUT',
         body: JSON.stringify({ status })
-        });
+      });
       if (response.ok) {
         fetchUsers();
         if (selectedUser && selectedUser.user._id === userId) {
@@ -376,7 +378,8 @@ const PropertyVerification = () => {
   }, []);
 
   const fetchPendingItems = async () => {
-        const response = await authFetch(`${API_BASE_URL}/api/admin/items/pending`);
+    try {
+      const response = await authFetch(`${API_BASE_URL}/api/admin/items/pending`);
       if (response.ok) {
         const data = await response.json();
         setItems(data);
@@ -392,7 +395,7 @@ const PropertyVerification = () => {
     try {
       const response = await authFetch(`${API_BASE_URL}/api/admin/items/${itemId}/verify`, {
         method: 'PUT'
-        });
+      });
       if (response.ok) {
         setItems(items.filter(item => item._id !== itemId));
         alert('Item verified successfully');
@@ -406,7 +409,7 @@ const PropertyVerification = () => {
     try {
       const response = await authFetch(`${API_BASE_URL}/api/admin/items/${itemId}/reject`, {
         method: 'PUT'
-        });
+      });
       if (response.ok) {
         setItems(items.filter(item => item._id !== itemId));
         alert('Item rejected');
@@ -521,7 +524,8 @@ const PaymentMonitoring = () => {
   }, []);
 
   const fetchPayments = async () => {
-        const response = await authFetch(`${API_BASE_URL}/api/admin/payments`);
+    try {
+      const response = await authFetch(`${API_BASE_URL}/api/admin/payments`);
       if (response.ok) {
         const data = await response.json();
         setPayments(data.payments);
@@ -653,7 +657,8 @@ const SupportTickets = () => {
   }, []);
 
   const fetchTickets = async () => {
-        const response = await authFetch(`${API_BASE_URL}/api/admin/tickets`);
+    try {
+      const response = await authFetch(`${API_BASE_URL}/api/admin/tickets`);
       if (response.ok) {
         const data = await response.json();
         setTickets(data);
@@ -671,7 +676,7 @@ const SupportTickets = () => {
       const response = await authFetch(`${API_BASE_URL}/api/admin/tickets`, {
         method: 'POST',
         body: JSON.stringify(newTicket)
-        });
+      });
       
       if (response.ok) {
         const ticket = await response.json();
@@ -689,7 +694,7 @@ const SupportTickets = () => {
       const response = await authFetch(`${API_BASE_URL}/api/admin/tickets/${ticketId}/status`, {
         method: 'PUT',
         body: JSON.stringify({ status })
-        });
+      });
       
       if (response.ok) {
         fetchTickets();
@@ -952,7 +957,8 @@ const Analytics = () => {
   }, []);
 
   const fetchAnalytics = async () => {
-        const response = await authFetch(`${API_BASE_URL}/api/admin/analytics`);
+    try {
+      const response = await authFetch(`${API_BASE_URL}/api/admin/analytics`);
       if (response.ok) {
         const data = await response.json();
         setAnalytics(data);
