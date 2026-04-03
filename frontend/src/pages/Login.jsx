@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { saveSession } from '../utils/auth';
 import { useNavigate, Link } from 'react-router-dom';
 import API_BASE_URL from '../config';
 
@@ -25,11 +26,7 @@ const Login = () => {
   };
 
   const saveAndRedirect = (data) => {
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('userEmail', data.user.email);
-    localStorage.setItem('userId', data.user.id);
-    localStorage.setItem('userName', data.user.name);
-    localStorage.setItem('userRoles', JSON.stringify(data.user.roles));
+    saveSession({ token: data.token, user: data.user });
     if (data.user.roles.includes('admin')) {
       navigate('/dashboard/admin');
     } else {
