@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import API_BASE_URL from '../config';
+import { authFetch } from '../utils/auth';
 
 const isoDate = (d) => d.toISOString().split('T')[0];
 const today   = () => { const d = new Date(); d.setHours(0,0,0,0); return d; };
@@ -180,21 +181,16 @@ const ProductDetail = () => {
 
   // ✅ Check if logged-in user has a completed booking they can review
   const checkReviewEligibility = async () => {
-    const token = localStorage.getItem('token');
     const userId = localStorage.getItem('userId');
     if (!token || !userId) return;
     try {
-      const bookingsRes = await fetch(`${API_BASE_URL}/api/bookings/user/${userId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const bookingsRes = await authFetch(`${API_BASE_URL}/api/bookings/user/${userId}`);
       if (!bookingsRes.ok) return;
       const bookings = await bookingsRes.json();
       // Find completed booking for this item that hasn't been reviewed
       for (const b of bookings) {
         if (b.item?._id === id && b.status === 'completed') {
-          const checkRes = await fetch(`${API_BASE_URL}/api/reviews/can-review/${b._id}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+          const checkRes = await authFetch(`${API_BASE_URL}/api/reviews/can-review/${b._id}`);
           if (checkRes.ok) {
             const { canReview } = await checkRes.json();
             if (canReview) { setReviewableBooking(b._id); break; }
@@ -208,14 +204,12 @@ const ProductDetail = () => {
   const handleSubmitReview = async (e) => {
     e.preventDefault();
     if (reviewRating === 0) { setReviewMsg({ type: 'err', text: 'Please select a star rating.' }); return; }
-    const token = localStorage.getItem('token');
     setReviewLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/reviews`, {
+      const res = await authFetch(`${API_BASE_URL}/api/reviews`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ itemId: id, bookingId: reviewableBooking, rating: reviewRating, comment: reviewComment })
-      });
+        });
       const data = await res.json();
       if (res.ok) {
         setReviewMsg({ type: 'ok', text: 'Review submitted! Thank you.' });
@@ -236,15 +230,13 @@ const ProductDetail = () => {
   const handleRangeSelect = (start, end) => { setSelectedStart(start); setSelectedEnd(end); setBookingError(''); };
 
   const handleCheckout = async () => {
-    const token = localStorage.getItem('token');
     const userId = localStorage.getItem('userId');
     if (!token) { alert('Please login to continue'); navigate('/login'); return; }
     if (!selectedStart || !selectedEnd) { setBookingError('Please select your rental dates on the calendar.'); return; }
     setBooking(true); setBookingError('');
     try {
-      const res = await fetch(`${API_BASE_URL}/api/bookings/create-checkout`, {
+      const res = await authFetch(`${API_BASE_URL}/api/bookings/create-checkout`, {
         method: 'POST',
-        headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${token}` },
         body: JSON.stringify({ itemId: item._id, renterId: userId, ownerId: item.owner._id, startDate: isoDate(selectedStart), endDate: isoDate(selectedEnd), totalPrice: calculateTotal() })
       });
       const data = await res.json();
