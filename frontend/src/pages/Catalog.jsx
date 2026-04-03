@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import API_BASE_URL from '../config';
+import { isLoggedIn } from '../utils/auth';
 const API = API_BASE_URL;
 
 // ✅ Star rating display component
@@ -57,7 +58,7 @@ const Catalog = () => {
   });
 
   const handleProfileClick = () => {
-    navigate(localStorage.getItem('token') ? '/profile' : '/login');
+    navigate(isLoggedIn() ? '/profile' : '/login');
   };
 
   if (loading) return (
