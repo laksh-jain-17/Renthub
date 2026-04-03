@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import API_BASE_URL from '../config';
+import { authFetch, logout } from '../utils/auth';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -12,11 +13,7 @@ const UserManagement = () => {
   }, []);
 
   const fetchUsers = async () => {
-    const token = localStorage.getItem('token');
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/users`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+        const response = await authFetch(`${API_BASE_URL}/api/admin/users`);
       if (response.ok) {
         const data = await response.json();
         setUsers(data);
@@ -29,11 +26,7 @@ const UserManagement = () => {
   };
 
   const fetchUserDetails = async (userId) => {
-    const token = localStorage.getItem('token');
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/user-details/${userId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+        const response = await authFetch(`${API_BASE_URL}/api/admin/user-details/${userId}`);
       if (response.ok) {
         const data = await response.json();
         setSelectedUser(data);
@@ -45,13 +38,10 @@ const UserManagement = () => {
 
   const handleDeleteUser = async (userId) => {
     if (!window.confirm("Permanently delete this account?")) return;
-    const token = localStorage.getItem('token');
-    
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await authFetch(`${API_BASE_URL}/api/admin/users/${userId}`, {
+        method: 'DELETE'
+        });
       if (response.ok) {
         setUsers(users.filter(u => u._id !== userId));
         setSelectedUser(null);
@@ -63,16 +53,11 @@ const UserManagement = () => {
   };
 
   const handleKycAction = async (userId, status) => {
-    const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/kyc-action/${userId}`, {
+      const response = await authFetch(`${API_BASE_URL}/api/admin/kyc-action/${userId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({ status })
-      });
+        });
       if (response.ok) {
         fetchUsers();
         if (selectedUser && selectedUser.user._id === userId) {
@@ -391,11 +376,7 @@ const PropertyVerification = () => {
   }, []);
 
   const fetchPendingItems = async () => {
-    const token = localStorage.getItem('token');
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/items/pending`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+        const response = await authFetch(`${API_BASE_URL}/api/admin/items/pending`);
       if (response.ok) {
         const data = await response.json();
         setItems(data);
@@ -408,12 +389,10 @@ const PropertyVerification = () => {
   };
 
   const handleVerify = async (itemId) => {
-    const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/items/${itemId}/verify`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await authFetch(`${API_BASE_URL}/api/admin/items/${itemId}/verify`, {
+        method: 'PUT'
+        });
       if (response.ok) {
         setItems(items.filter(item => item._id !== itemId));
         alert('Item verified successfully');
@@ -424,12 +403,10 @@ const PropertyVerification = () => {
   };
 
   const handleReject = async (itemId) => {
-    const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/items/${itemId}/reject`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await authFetch(`${API_BASE_URL}/api/admin/items/${itemId}/reject`, {
+        method: 'PUT'
+        });
       if (response.ok) {
         setItems(items.filter(item => item._id !== itemId));
         alert('Item rejected');
@@ -544,11 +521,7 @@ const PaymentMonitoring = () => {
   }, []);
 
   const fetchPayments = async () => {
-    const token = localStorage.getItem('token');
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/payments`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+        const response = await authFetch(`${API_BASE_URL}/api/admin/payments`);
       if (response.ok) {
         const data = await response.json();
         setPayments(data.payments);
@@ -680,11 +653,7 @@ const SupportTickets = () => {
   }, []);
 
   const fetchTickets = async () => {
-    const token = localStorage.getItem('token');
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/tickets`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+        const response = await authFetch(`${API_BASE_URL}/api/admin/tickets`);
       if (response.ok) {
         const data = await response.json();
         setTickets(data);
@@ -698,17 +667,11 @@ const SupportTickets = () => {
 
   const handleCreateTicket = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('token');
-    
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/tickets`, {
+      const response = await authFetch(`${API_BASE_URL}/api/admin/tickets`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify(newTicket)
-      });
+        });
       
       if (response.ok) {
         const ticket = await response.json();
@@ -722,16 +685,11 @@ const SupportTickets = () => {
   };
 
   const handleUpdateStatus = async (ticketId, status) => {
-    const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/tickets/${ticketId}/status`, {
+      const response = await authFetch(`${API_BASE_URL}/api/admin/tickets/${ticketId}/status`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({ status })
-      });
+        });
       
       if (response.ok) {
         fetchTickets();
@@ -994,11 +952,7 @@ const Analytics = () => {
   }, []);
 
   const fetchAnalytics = async () => {
-    const token = localStorage.getItem('token');
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/analytics`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+        const response = await authFetch(`${API_BASE_URL}/api/admin/analytics`);
       if (response.ok) {
         const data = await response.json();
         setAnalytics(data);
@@ -1238,8 +1192,7 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('users');
 
   const handleLogout = () => {
-    localStorage.clear();
-    navigate('/login');
+    logout();
   };
 
   return (
