@@ -6,6 +6,11 @@ require('dotenv').config();
 const app = express();
 
 app.use(cors({ origin: '*', credentials: false }));
+app.use((req, res, next) => {
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
+  next();
+});
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
