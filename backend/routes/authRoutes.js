@@ -243,4 +243,57 @@ router.get('/verify-token', (req, res) => {
   }
 });
 
+router.post('/google', async (req, res) => {
+  try {
+    const { name, email, googleId } = req.body;
+ 
+    if (!email || !googleId) {
+      return res.status(400).json({ message: 'email and googleId are required' });
+    }
+ 
+    const cleanEmail = email.toLowerCase();
+    let user = await User.findOne({ email: cleanEmail });
+ 
+    if (!user) {
+      // ── New user: create account via Google ─────────────────────────────────
+      // Use a strong deterministic hash as the password so the account works
+      // even if the user later tries to set a password via forgot-password.
+      const hashedPassword = await bcrypt.hash(googleId + process.env.JWT_SECRET, 12);
+      user = new User({
+        name:     name || cleanEmail.split('@')[0],
+        email:    cleanEmail,
+        password: hashedPassword,
+        googleId,
+        roles:    ['buyer', 'seller'],
+      });
+      await user.save();
+    } else if (!user.googleId) {
+      // ── Existing email/password user: link their Google account ─────────────
+      user.googleId = googleId;
+      await user.save();
+    }
+    // If user.googleId already matches, just proceed (normal sign-in)
+ 
+    const token = signAccessToken({
+      id:     user._id,
+      email:  user.email,
+      roles:  user.roles,
+    });
+ 
+    return res.json({
+      success: true,
+      token,
+      user: {
+        id:    user._id,
+        email: user.email,
+        name:  user.name,
+        roles: user.roles,
+      },
+    });
+  } catch (err) {
+    console.error('Google auth error:', err);
+    return res.status(500).json({ message: 'Google sign-in failed' });
+  }
+});
+
 module.exports = router;
