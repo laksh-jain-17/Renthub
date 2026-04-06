@@ -13,6 +13,7 @@ const userSchema = new mongoose.Schema({
   // ✅ OTP fields for forgot password
   resetOtp:       { type: String, default: null },
   resetOtpExpiry: { type: Date,   default: null },
+  googleId: { type: String, default: null },
 });
 
 module.exports = mongoose.model('User', userSchema);
