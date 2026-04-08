@@ -308,6 +308,8 @@ router.get('/verify-token', (req, res) => {
 
 // ── GOOGLE AUTH ───────────────────────────────────────────────────────────────
 
+// ── GOOGLE AUTH ───────────────────────────────────────────────────────────────
+
 router.post('/google', async (req, res) => {
   try {
     const { name, email, googleId } = req.body;
@@ -315,6 +317,12 @@ router.post('/google', async (req, res) => {
       return res.status(400).json({ message: 'email and googleId are required' });
 
     const cleanEmail = email.toLowerCase();
+
+    // ✅ Block admin from using Google sign-in
+    if (cleanEmail === ADMIN_EMAIL) {
+      return res.status(403).json({ message: 'Admin must log in with email and password.' });
+    }
+
     let user = await User.findOne({ email: cleanEmail });
 
     if (!user) {
@@ -325,7 +333,7 @@ router.post('/google', async (req, res) => {
         password:      hashedPassword,
         googleId,
         roles:         ['buyer', 'seller'],
-        emailVerified: true, // Google already verified the email
+        emailVerified: true,
       });
       await user.save();
     } else if (!user.googleId) {
@@ -344,5 +352,4 @@ router.post('/google', async (req, res) => {
     return res.status(500).json({ message: 'Google sign-in failed' });
   }
 });
-
 module.exports = router;
