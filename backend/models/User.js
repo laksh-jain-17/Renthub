@@ -10,10 +10,15 @@ const userSchema = new mongoose.Schema({
   kycStatus: { type: String, enum: ['pending', 'verified', 'rejected'], default: 'pending' },
   createdAt: { type: Date, default: Date.now },
 
-  // ✅ OTP fields for forgot password
+  // OTP fields for forgot password
   resetOtp:       { type: String, default: null },
   resetOtpExpiry: { type: Date,   default: null },
   googleId: { type: String, default: null },
+
+  // Email verification for new registrations
+  emailVerified:   { type: Boolean, default: false },
+  verifyOtp:       { type: String,  default: null },
+  verifyOtpExpiry: { type: Date,    default: null },
 });
 
 module.exports = mongoose.model('User', userSchema);
