@@ -145,14 +145,20 @@ router.post('/login', async (req, res) => {
     const cleanEmail = email.toLowerCase();
 
     // Admin path
-    if (cleanEmail === ADMIN_EMAIL) {
-      if (password !== ADMIN_PASSWORD)
-        return res.status(400).json({ message: 'Invalid credentials' });
-      const otp = generateOtp();
-      adminOtpStore = { hashedOtp: hashOtp(otp), expiry: new Date(Date.now() + 10 * 60 * 1000) };
-      await sendOtpEmail(ADMIN_EMAIL, otp);
-      return res.json({ success: true, requiresOTP: true });
-    }
+    // Admin path
+if (cleanEmail === ADMIN_EMAIL) {
+  if (password !== ADMIN_PASSWORD)
+    return res.status(400).json({ message: 'Invalid credentials' });
+  const otp = generateOtp();
+  adminOtpStore = { hashedOtp: hashOtp(otp), expiry: new Date(Date.now() + 10 * 60 * 1000) };
+  try {
+    await sendOtpEmail(ADMIN_EMAIL, otp);
+  } catch (mailErr) {
+    console.error('Admin OTP email failed:', mailErr.message);
+    return res.status(500).json({ message: `OTP email failed: ${mailErr.message}` });
+  }
+  return res.json({ success: true, requiresOTP: true });
+}
 
     // Normal user path
     const user = await User.findOne({ email: cleanEmail });
