@@ -10,21 +10,32 @@ const { authenticateToken } = require('../middleware/auth');
 const { getItemRecommendations } = require('../utils/recommendationSystem');
 const { upload, saveFileLocally } = require('../middleware/upload');
 
-router.post('/add', authenticateToken, upload.single('image'), saveFileLocally, async (req, res) => {
+const { upload, uploadToCloudinary, cloudinary } = require('../middleware/upload');
+
+router.post('/add', authenticateToken, upload.single('image'), async (req, res) => {
   try {
-    const imageUrl = req.file ? req.file.localUrl : null;
+    let imageUrl = null;
+
+    // Upload to Cloudinary if image was provided
+    if (req.file) {
+      const result = await uploadToCloudinary(req.file.buffer);
+      imageUrl = result.secure_url; // ✅ permanent HTTPS Cloudinary URL
+    }
+
     const newItem = new Item({
-      owner: req.body.owner,
-      title: req.body.title,
-      category: req.body.category,
+      owner:       req.body.owner,
+      title:       req.body.title,
+      category:    req.body.category,
       pricePerDay: req.body.pricePerDay,
       description: req.body.description,
-      images: imageUrl ? [imageUrl] : [],
-      // ✅ no fake rating — starts at 0, updated by reviews
+      images:      imageUrl ? [imageUrl] : [],
     });
+
     const savedItem = await newItem.save();
     res.status(201).json(savedItem);
+
   } catch (err) {
+    console.error('Add item error:', err);
     res.status(400).json({ message: err.message });
   }
 });
@@ -77,8 +88,22 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
+    const item = await Item.findById(req.params.id);
+    if (!item) return res.status(404).json({ message: 'Item not found' });
+
+    // Clean up Cloudinary image
+    if (item.images && item.images.length > 0) {
+      const url = item.images[0];
+      // Extract public_id: everything after /upload/ and before the extension
+      const match = url.match(/\/upload\/(?:v\d+\/)?(.+)\.[a-z]+$/);
+      if (match) {
+        await cloudinary.uploader.destroy(match[1]);
+      }
+    }
+
     await Item.findByIdAndDelete(req.params.id);
     res.json({ message: 'Item deleted successfully' });
+
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
