@@ -4,6 +4,10 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
+// ✅ Add this route BEFORE your other routes
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', uptime: process.uptime() });
+});
 
 app.use(cors({ origin: '*', credentials: false }));
 app.use((req, res, next) => {
