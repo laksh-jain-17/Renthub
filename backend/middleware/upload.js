@@ -1,39 +1,43 @@
+// backend/middleware/upload.js
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const cloudinary = require('cloudinary').v2;
+const { Readable } = require('stream');
 
-const uploadDir = 'uploads/';
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `${Date.now()}${path.extname(file.originalname)}`;
-    cb(null, uniqueName);
-  }
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key:    process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+// Store in memory — no disk involved
 const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (req, file, cb) => {
-    const allowed = /jpeg|jpg|png|webp/;
-    const valid =
-      allowed.test(path.extname(file.originalname).toLowerCase()) &&
-      allowed.test(file.mimetype);
-    valid ? cb(null, true) : cb(new Error('Only image files are allowed'));
-  }
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only JPG, PNG, WEBP images are allowed'), false);
+    }
+  },
 });
 
-// Replaces uploadToGCS — just sets a local URL instead
-const saveFileLocally = (req, res, next) => {
-  if (!req.file) return next();
-  req.file.localUrl = `/uploads/${req.file.filename}`;
-  next();
+// Upload buffer to Cloudinary via stream
+const uploadToCloudinary = (buffer) => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: 'renthub/items',
+        transformation: [{ width: 800, height: 600, crop: 'limit', quality: 'auto' }],
+      },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
+      }
+    );
+    Readable.from(buffer).pipe(stream);
+  });
 };
 
-module.exports = { upload, saveFileLocally };
+module.exports = { upload, uploadToCloudinary, cloudinary };
