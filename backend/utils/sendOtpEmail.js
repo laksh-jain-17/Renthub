@@ -1,9 +1,9 @@
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 const { Resend } = require('resend');
 
+const getResend = () => new Resend(process.env.RESEND_API_KEY);
+
 const sendOtpEmail = async (toEmail, otp) => {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: 'RentHub <onboarding@resend.dev>',
     to: toEmail,
     subject: 'Your RentHub Admin Login OTP',
@@ -20,7 +20,7 @@ const sendOtpEmail = async (toEmail, otp) => {
 };
 
 const sendRegistrationOtpEmail = async (toEmail, otp) => {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: 'RentHub <onboarding@resend.dev>',
     to: toEmail,
     subject: 'Verify your RentHub account',
@@ -37,7 +37,7 @@ const sendRegistrationOtpEmail = async (toEmail, otp) => {
 };
 
 const sendPasswordChangedEmail = async (toEmail, userName) => {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: 'RentHub <onboarding@resend.dev>',
     to: toEmail,
     subject: 'Your RentHub password was changed',
