@@ -8,7 +8,6 @@ const Item = require('../models/Item');
 const Booking = require('../models/Booking');
 const { authenticateToken } = require('../middleware/auth');
 const { getItemRecommendations } = require('../utils/recommendationSystem');
-const { upload, saveFileLocally } = require('../middleware/upload');
 
 const { upload, uploadToCloudinary, cloudinary } = require('../middleware/upload');
 
