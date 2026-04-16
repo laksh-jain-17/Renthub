@@ -108,4 +108,38 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// TEMPORARY — remove after running once
+router.get('/admin/fix-image-urls', async (req, res) => {
+  try {
+    const items = await Item.find({});
+    let fixed = 0;
+
+    for (const item of items) {
+      if (!item.images || item.images.length === 0) continue;
+
+      const cleanedImages = item.images.map(url => {
+        if (!url.includes('onrender.com')) return url;
+
+        const match = url.match(/(https?:\/\/res\.cloudinary\.com\/.+)/);
+        if (match) return match[1];
+
+        const match2 = url.match(/https\/\/(res\.cloudinary\.com\/.+)/);
+        if (match2) return `https://${match2[1]}`;
+
+        return url;
+      });
+
+      const hasChanges = cleanedImages.some((url, i) => url !== item.images[i]);
+      if (hasChanges) {
+        await Item.findByIdAndUpdate(item._id, { images: cleanedImages });
+        fixed++;
+      }
+    }
+
+    res.json({ message: `Done. Fixed ${fixed} item(s).` });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;
