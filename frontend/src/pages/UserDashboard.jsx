@@ -154,7 +154,7 @@ const BrowseItems = () => {
           >
             <div style={{
               height: '210px',
-              background: item.images?.length > 0 ? `url(${API}${item.images[0]}) center/cover` : '#e0e0e0',
+              background: item.images?.length > 0 ? `url(${item.images[0]}) center/cover` : '#e0e0e0',
               position: 'relative'
             }}>
               {item.isVerified && (
@@ -262,7 +262,7 @@ const MyBookings = () => {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: '24px' }}>
           {bookings.map(b => (
             <div key={b._id} style={{ background: 'white', borderRadius: '18px', overflow: 'hidden', boxShadow: '0 5px 15px rgba(0,0,0,0.07)' }}>
-              <div style={{ height: '150px', background: b.item?.images?.[0] ? `url(${API}${b.item.images[0]}) center/cover` : GREEN_LIGHT }} />
+              <div style={{ height: '150px', background: b.item?.images?.[0] ? `url(${b.item.images[0]}) center/cover` : GREEN_LIGHT }} />
               <div style={{ padding: '18px' }}>
                 <h4 style={{ fontSize: '1.05rem', color: '#333', marginBottom: '4px' }}>{b.item?.title || 'Item'}</h4>
                 <p style={{ color: '#aaa', fontSize: '0.8rem', marginBottom: '12px' }}>{b.item?.category}</p>
@@ -557,7 +557,7 @@ const MyListings = () => {
           }}>
             <div style={{
               height: '150px',
-              background: item.images?.length > 0 ? `url(${API}${item.images[0]}) center/cover` : '#f0fdf9',
+              background: item.images?.length > 0 ? `url(${item.images[0]}) center/cover` : '#f0fdf9',
               borderRadius: '15px 15px 0 0'
             }} />
             <div style={{ padding: '16px' }}>
