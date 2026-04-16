@@ -119,7 +119,6 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// TEMPORARY — remove after running once
 router.get('/admin/fix-image-urls', async (req, res) => {
   try {
     const items = await Item.find({});
@@ -129,13 +128,13 @@ router.get('/admin/fix-image-urls', async (req, res) => {
       if (!item.images || item.images.length === 0) continue;
 
       const cleanedImages = item.images.map(url => {
-        if (!url.includes('onrender.com')) return url;
+        // Extract anything that looks like a full URL starting with https://res.cloudinary
+        const match = url.match(/https?:\/\/res\.cloudinary\.com\/.+/);
+        if (match) return match[0];
 
-        const match = url.match(/(https?:\/\/res\.cloudinary\.com\/.+)/);
-        if (match) return match[1];
-
-        const match2 = url.match(/https\/\/(res\.cloudinary\.com\/.+)/);
-        if (match2) return `https://${match2[1]}`;
+        // Handle "https//res.cloudinary" (missing colon)
+        const match2 = url.match(/https?\/\/res\.cloudinary\.com\/.+/);
+        if (match2) return 'https://' + match2[0].replace(/^https?\/\//, '');
 
         return url;
       });
@@ -147,7 +146,7 @@ router.get('/admin/fix-image-urls', async (req, res) => {
       }
     }
 
-    res.json({ message: `Done. Fixed ${fixed} item(s).` });
+    res.json({ message: `Done. Fixed ${fixed} item(s).`, items: await Item.find({}, 'title images') });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
