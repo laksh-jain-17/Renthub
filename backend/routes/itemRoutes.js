@@ -11,6 +11,17 @@ const { getItemRecommendations } = require('../utils/recommendationSystem');
 
 const { upload, uploadToCloudinary, cloudinary } = require('../middleware/upload');
 
+// TEMPORARY DIAGNOSTIC
+router.get('/admin/check-urls', async (req, res) => {
+  const items = await Item.find({});
+  const urls = items.map(item => ({
+    id: item._id,
+    title: item.title,
+    images: item.images
+  }));
+  res.json(urls);
+});
+
 router.post('/add', authenticateToken, upload.single('image'), async (req, res) => {
   try {
     let imageUrl = null;
