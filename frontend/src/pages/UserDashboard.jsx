@@ -146,7 +146,7 @@ const BrowseItems = () => {
             key={item._id}
             onClick={() => navigate(`/item/${item._id}`)}
             style={{
-              background: 'white', borderRadius: '20px', overflow: 'hidden',
+              background: 'white', borderRadius: '20px', overflow: 'hidden', 
               boxShadow: '0 5px 15px rgba(0,0,0,0.08)', transition: 'transform 0.3s', cursor: 'pointer'
             }}
             onMouseOver={e => e.currentTarget.style.transform = 'translateY(-5px)'}
