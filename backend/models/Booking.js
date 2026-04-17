@@ -1,46 +1,30 @@
 const mongoose = require('mongoose');
 
 const bookingSchema = new mongoose.Schema({
-  item: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Item',
-    required: true
-  },
-  renter: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  owner: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  startDate: {
-    type: Date,
-    required: true
-  },
-  endDate: {
-    type: Date,
-    required: true
-  },
-  totalPrice: {
-    type: Number,
-    required: true
-  },
+  item: { type: mongoose.Schema.Types.ObjectId, ref: 'Item', required: true },
+  renter: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  startDate: { type: Date, required: true },
+  endDate: { type: Date, required: true },
+  totalPrice: { type: Number, required: true },
   status: {
     type: String,
     enum: ['pending', 'active', 'completed', 'cancelled', 'disputed'],
     default: 'pending'
   },
-  paymentId: {
+  paymentId: { type: String, default: '' },
+
+  // ✅ ADDED: fields that were being saved but not stored
+  deliveryAddress: { type: String, default: '' },
+  deliveryType: {
     type: String,
-    default: ''
+    enum: ['standard', 'express', 'pickup'],
+    default: 'standard'
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
+  paymentMethod: { type: String, default: 'card' },
+  deliveryCharge: { type: Number, default: 50 },
+
+  createdAt: { type: Date, default: Date.now }
 });
 
 module.exports = mongoose.model('Booking', bookingSchema);
