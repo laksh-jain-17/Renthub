@@ -596,6 +596,16 @@ const RentalBookings = () => {
       .finally(() => setLoading(false));
   }, []);
 
+  const handleBookingStatus = async (bookingId, status) => {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API}/api/bookings/${bookingId}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ status })
+    });
+    if (res.ok) setBookings(prev => prev.map(b => b._id === bookingId ? { ...b, status } : b));
+  };
+
   if (loading) return <Loader text="Loading rental requests..." />;
 
   return (
@@ -610,7 +620,7 @@ const RentalBookings = () => {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #eee' }}>
-                {['Item', 'Renter', 'Dates', 'Amount', 'Status'].map(h => (
+                {['Item', 'Renter', 'Dates', 'Amount', 'Status', 'Action'].map(h => (
                   <th key={h} style={{ padding: '14px', textAlign: 'left', color: '#555', fontWeight: '600', fontSize: '0.88rem' }}>{h}</th>
                 ))}
               </tr>
@@ -625,6 +635,20 @@ const RentalBookings = () => {
                   </td>
                   <td style={{ padding: '14px', fontWeight: '700', color: GREEN }}>₹{b.totalPrice}</td>
                   <td style={{ padding: '14px' }}><StatusBadge status={b.status} /></td>
+                  <td style={{ padding: '14px' }}>
+                    {b.status === 'pending' && (
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={() => handleBookingStatus(b._id, 'active')}
+                          style={{ padding: '6px 14px', background: '#e6fffa', color: '#0f9f6e', border: '1px solid #6ee7c7', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem' }}
+                        >Accept</button>
+                        <button
+                          onClick={() => handleBookingStatus(b._id, 'cancelled')}
+                          style={{ padding: '6px 14px', background: '#fef2f2', color: '#b91c1c', border: '1px solid #fca5a5', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem' }}
+                        >Reject</button>
+                      </div>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
