@@ -9,6 +9,16 @@ const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate()+n); ret
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
+const loadRazorpayScript = () =>
+  new Promise(resolve => {
+    if (window.Razorpay) return resolve(true);
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload  = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+
 // ✅ Star display component
 const StarRating = ({ rating, size = '1rem' }) => (
   <span style={{ display: 'inline-flex', gap: '1px' }}>
@@ -229,22 +239,65 @@ const ProductDetail = () => {
   const calculateTotal = () => item ? item.pricePerDay * calculateDays() : 0;
   const handleRangeSelect = (start, end) => { setSelectedStart(start); setSelectedEnd(end); setBookingError(''); };
 
-  const handleCheckout = async () => {
-    const userId = localStorage.getItem('userId');
-    if (!token) { alert('Please login to continue'); navigate('/login'); return; }
-    if (!selectedStart || !selectedEnd) { setBookingError('Please select your rental dates on the calendar.'); return; }
-    setBooking(true); setBookingError('');
-    try {
-      const res = await authFetch(`${API_BASE_URL}/api/bookings/create-checkout`, {
-        method: 'POST',
-        body: JSON.stringify({ itemId: item._id, renterId: userId, ownerId: item.owner._id, startDate: isoDate(selectedStart), endDate: isoDate(selectedEnd), totalPrice: calculateTotal() })
-      });
-      const data = await res.json();
-      if (res.ok) { alert('Booking confirmed! Check "My Bookings" to view your rental.'); navigate('/dashboard'); }
-      else setBookingError(data.message || 'Checkout failed. Please try again.');
-    } catch { setBookingError('Could not connect to server. Please try again.'); }
-    finally { setBooking(false); }
-  };
+  // Replace handleCheckout with this:
+const handleCheckout = async () => {
+  const userId = localStorage.getItem('userId');
+  const token  = localStorage.getItem('token');
+  if (!token)  { alert('Please login to continue'); navigate('/login'); return; }
+  if (!selectedStart || !selectedEnd) { setBookingError('Please select your rental dates.'); return; }
+
+  setBooking(true); setBookingError('');
+  try {
+    // Step 1 — load Razorpay SDK
+    const loaded = await loadRazorpayScript();
+    if (!loaded) { setBookingError('Razorpay failed to load. Check your internet.'); setBooking(false); return; }
+
+    // Step 2 — create Razorpay order on backend
+    const orderRes = await authFetch(`${API_BASE_URL}/api/bookings/create-razorpay-order`, {
+      method: 'POST',
+      body: JSON.stringify({ itemId: item._id, startDate: isoDate(selectedStart), endDate: isoDate(selectedEnd), totalPrice: calculateTotal() })
+    });
+    const orderData = await orderRes.json();
+    if (!orderRes.ok) { setBookingError(orderData.message || 'Could not create order.'); setBooking(false); return; }
+
+    // Step 3 — open Razorpay checkout
+    const options = {
+      key:         import.meta.env.VITE_RAZORPAY_KEY_ID,
+      amount:      orderData.amount,
+      currency:    'INR',
+      order_id:    orderData.orderId,
+      name:        'RentHub',
+      description: `Rental: ${item.title}`,
+      prefill:     { name: localStorage.getItem('userName') || '', },
+      theme:       { color: '#32be8f' },
+      handler: async (response) => {
+        // Step 4 — verify payment and save booking
+        const verifyRes = await authFetch(`${API_BASE_URL}/api/bookings/verify-payment`, {
+          method: 'POST',
+          body: JSON.stringify({
+            ...response,
+            itemId:     item._id,
+            startDate:  isoDate(selectedStart),
+            endDate:    isoDate(selectedEnd),
+            totalPrice: calculateTotal(),
+          })
+        });
+        const verifyData = await verifyRes.json();
+        if (verifyRes.ok) {
+          alert('🎉 Booking confirmed! Check "My Bookings" to view your rental.');
+          navigate('/dashboard');
+        } else {
+          setBookingError(verifyData.message || 'Payment verification failed.');
+        }
+        setBooking(false);
+      },
+      modal: {
+        ondismiss: () => { setBookingError('Payment cancelled.'); setBooking(false); }
+      }
+    };
+    new window.Razorpay(options).open();
+  } catch { setBookingError('Connection error. Please try again.'); setBooking(false); }
+};
 
   if (loading) return (
     <div style={{ height:'100vh', display:'flex', alignItems:'center', justifyContent:'center' }}>
