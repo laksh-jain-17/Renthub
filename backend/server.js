@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const autoCompleteBookings = require('./cron/autoComplete');
 require('dotenv').config();
 
 const app = express();
@@ -29,6 +30,10 @@ app.use('/uploads', express.static('uploads'));
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', uptime: process.uptime() });
 });
+
+// Run once on startup, then every hour
+autoCompleteBookings();
+setInterval(autoCompleteBookings, 60 * 60 * 1000);
 
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/renthub')
   .then(() => console.log('MongoDB Connected'))
