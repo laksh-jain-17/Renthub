@@ -77,14 +77,22 @@ router.get('/owner/:ownerId', authenticateToken, async (req, res) => {
   }
 });
 
-router.get('/:id', async (req, res) => {
+router.put('/:id', authenticateToken, async (req, res) => {
   try {
-    const item = await Item.findById(req.params.id).populate('owner', 'name email phone');
+    const item = await Item.findById(req.params.id);
     if (!item) return res.status(404).json({ message: 'Item not found' });
+    if (item.owner.toString() !== req.user.id)
+      return res.status(403).json({ message: 'Not authorized' });
+
+    const { title, category, pricePerDay, description } = req.body;
+    if (title) item.title = title;
+    if (category) item.category = category;
+    if (pricePerDay) item.pricePerDay = pricePerDay;
+    if (description !== undefined) item.description = description;
+
+    await item.save();
     res.json(item);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+  } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 router.put('/:id', authenticateToken, async (req, res) => {
