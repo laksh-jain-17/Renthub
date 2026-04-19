@@ -91,6 +91,8 @@ const BrowseItems = () => {
   const [items, setItems] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [maxPrice, setMaxPrice] = useState(5000);
+  const [sortBy, setSortBy] = useState('newest');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -102,12 +104,26 @@ const BrowseItems = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = items.filter(item => {
-    const s = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()));
-    const c = selectedCategory === 'All' || item.category.toLowerCase() === selectedCategory.toLowerCase();
-    return s && c;
-  });
+  const categories = ['All', 'Camera', 'Gaming', 'Camping', 'Gym'];
+
+  const filtered = items
+    .filter(item => {
+      const matchSearch =
+        item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchCategory =
+        selectedCategory === 'All' ||
+        item.category.toLowerCase() === selectedCategory.toLowerCase();
+      const matchPrice = item.pricePerDay <= maxPrice;
+      return matchSearch && matchCategory && matchPrice;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'newest')    return new Date(b.createdAt) - new Date(a.createdAt);
+      if (sortBy === 'price-asc') return a.pricePerDay - b.pricePerDay;
+      if (sortBy === 'price-desc') return b.pricePerDay - a.pricePerDay;
+      if (sortBy === 'rating')    return (b.rating || 0) - (a.rating || 0);
+      return 0;
+    });
 
   if (loading) return <Loader text="Loading items..." />;
 
@@ -117,6 +133,7 @@ const BrowseItems = () => {
         Explore Gear
       </h1>
 
+      {/* Search */}
       <input
         type="text" placeholder="Search items..."
         value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
@@ -127,26 +144,78 @@ const BrowseItems = () => {
         }}
       />
 
-      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '30px' }}>
-        {['All', 'Camera', 'Gaming', 'Camping', 'Gym'].map(cat => (
+      {/* Filters row */}
+      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '16px' }}>
+        {/* Category pills */}
+        {categories.map(cat => (
           <button key={cat} onClick={() => setSelectedCategory(cat)} style={{
             padding: '9px 22px', borderRadius: '25px', border: '1px solid #ddd',
             background: selectedCategory === cat ? GREEN : 'white',
             color: selectedCategory === cat ? 'white' : '#333',
-            cursor: 'pointer', fontWeight: '500', transition: 'all 0.3s'
+            cursor: 'pointer', fontWeight: '500', transition: 'all 0.2s'
           }}>{cat}</button>
         ))}
+
+        {/* Sort dropdown */}
+        <select
+          value={sortBy} onChange={e => setSortBy(e.target.value)}
+          style={{
+            marginLeft: 'auto', padding: '9px 16px', borderRadius: '25px',
+            border: '1px solid #ddd', fontSize: '0.88rem', cursor: 'pointer',
+            background: 'white', color: '#333', outline: 'none'
+          }}
+        >
+          <option value="newest">Newest first</option>
+          <option value="price-asc">Price: Low to High</option>
+          <option value="price-desc">Price: High to Low</option>
+          <option value="rating">Top Rated</option>
+        </select>
       </div>
+
+      {/* Price range filter */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '14px',
+        background: 'white', padding: '14px 20px', borderRadius: '14px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.05)', marginBottom: '28px'
+      }}>
+        <span style={{ fontSize: '0.88rem', color: '#555', whiteSpace: 'nowrap', fontWeight: '600' }}>
+          Max Price:
+        </span>
+        <input
+          type="range" min="100" max="5000" step="100"
+          value={maxPrice} onChange={e => setMaxPrice(Number(e.target.value))}
+          style={{ flex: 1, accentColor: GREEN }}
+        />
+        <span style={{
+          minWidth: '80px', padding: '5px 14px', background: GREEN_LIGHT,
+          color: GREEN, borderRadius: '20px', fontWeight: '700', fontSize: '0.88rem', textAlign: 'center'
+        }}>
+          ₹{maxPrice}/day
+        </span>
+        <button
+          onClick={() => { setMaxPrice(5000); setSearchTerm(''); setSelectedCategory('All'); setSortBy('newest'); }}
+          style={{
+            padding: '6px 14px', background: '#f5f5f5', border: 'none',
+            borderRadius: '20px', cursor: 'pointer', fontSize: '0.8rem', color: '#888'
+          }}
+        >Reset</button>
+      </div>
+
+      {/* Results count */}
+      <p style={{ color: '#999', fontSize: '0.85rem', marginBottom: '18px' }}>
+        {filtered.length} item{filtered.length !== 1 ? 's' : ''} found
+      </p>
 
       {error && <ErrorBox msg={error} />}
 
+      {/* Items grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '28px' }}>
         {filtered.length > 0 ? filtered.map(item => (
           <div
             key={item._id}
             onClick={() => navigate(`/item/${item._id}`)}
             style={{
-              background: 'white', borderRadius: '20px', overflow: 'hidden', 
+              background: 'white', borderRadius: '20px', overflow: 'hidden',
               boxShadow: '0 5px 15px rgba(0,0,0,0.08)', transition: 'transform 0.3s', cursor: 'pointer'
             }}
             onMouseOver={e => e.currentTarget.style.transform = 'translateY(-5px)'}
@@ -164,15 +233,22 @@ const BrowseItems = () => {
                   padding: '5px 12px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 'bold'
                 }}>✓ Verified</div>
               )}
+              <div style={{
+                position: 'absolute', top: '10px', right: '10px',
+                background: 'rgba(0,0,0,0.55)', color: 'white',
+                padding: '5px 12px', borderRadius: '10px', fontSize: '0.78rem', fontWeight: '700'
+              }}>
+                ₹{item.pricePerDay}/day
+              </div>
             </div>
             <div style={{ padding: '18px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={{ color: '#999', fontSize: '0.78rem', textTransform: 'uppercase', fontWeight: '600' }}>
                   {item.category}
                 </span>
-                <span style={{ display:'flex', alignItems:'center', gap:'3px' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
                   <StarRating rating={item.rating} />
-                  {item.numReviews > 0 && <span style={{ color:'#aaa', fontSize:'0.75rem' }}>({item.numReviews})</span>}
+                  {item.numReviews > 0 && <span style={{ color: '#aaa', fontSize: '0.75rem' }}>({item.numReviews})</span>}
                 </span>
               </div>
               <h3 style={{ fontSize: '1.1rem', marginBottom: '8px', color: '#333', minHeight: '44px' }}>
@@ -185,18 +261,12 @@ const BrowseItems = () => {
               }}>
                 {item.description || 'No description available'}
               </p>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid #f0f0f0' }}>
-                <p style={{ fontSize: '1.4rem', fontWeight: 'bold', color: GREEN, margin: 0 }}>
-                  ₹{item.pricePerDay}
-                  <span style={{ fontSize: '0.78rem', fontWeight: '400', color: '#999' }}>/day</span>
-                </p>
-                <button style={{
-                  padding: '9px 20px', background: GREEN, color: 'white',
-                  border: 'none', borderRadius: '8px', fontSize: '0.88rem', fontWeight: '600', cursor: 'pointer'
-                }}>View Details</button>
-              </div>
+              <button style={{
+                width: '100%', padding: '10px', background: GREEN, color: 'white',
+                border: 'none', borderRadius: '8px', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer'
+              }}>View Details</button>
               {item.isVerified && (
-                <div style={{ marginTop: '12px', padding: '9px', background: GREEN_LIGHT, borderRadius: '8px', fontSize: '0.78rem', color: GREEN, textAlign: 'center' }}>
+                <div style={{ marginTop: '10px', padding: '9px', background: GREEN_LIGHT, borderRadius: '8px', fontSize: '0.78rem', color: GREEN, textAlign: 'center' }}>
                   Safety Tutorial Available
                 </div>
               )}
