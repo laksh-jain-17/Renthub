@@ -3,7 +3,11 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const autoCompleteBookings = require('./cron/autoComplete');
 require('dotenv').config();
+const autoCompleteBookings = require('./cron/autoComplete');
 
+// Run once on startup, then every hour
+autoCompleteBookings();
+setInterval(autoCompleteBookings, 60 * 60 * 1000);
 const app = express();
 
 // ✅ CORS FIRST — before everything
