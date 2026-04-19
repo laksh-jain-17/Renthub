@@ -1,13 +1,10 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const autoCompleteBookings = require('./cron/autoComplete');
 require('dotenv').config();
+
 const autoCompleteBookings = require('./cron/autoComplete');
 
-// Run once on startup, then every hour
-autoCompleteBookings();
-setInterval(autoCompleteBookings, 60 * 60 * 1000);
 const app = express();
 
 const allowedOrigins = [
@@ -18,7 +15,6 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, Postman)
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
     callback(new Error(`CORS blocked: ${origin}`));
@@ -28,7 +24,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// ✅ Handle preflight for ALL routes
 app.options('*', cors());
 
 app.use((req, res, next) => {
@@ -40,18 +35,9 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
-// Health check
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', uptime: process.uptime() });
 });
-
-// Run once on startup, then every hour
-autoCompleteBookings();
-setInterval(autoCompleteBookings, 60 * 60 * 1000);
-
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/renthub')
-  .then(() => console.log('MongoDB Connected'))
-  .catch(err => console.log('DB Connection Error:', err));
 
 const authRoutes    = require('./routes/authRoutes');
 const userRoutes    = require('./routes/userRoutes');
@@ -68,4 +54,15 @@ app.use('/api/admin',    adminRoutes);
 app.use('/api/reviews',  reviewRoutes);
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/renthub')
+  .then(() => {
+    console.log('MongoDB Connected');
+
+    // ✅ Only start cron AFTER DB is ready
+    autoCompleteBookings();
+    setInterval(autoCompleteBookings, 60 * 60 * 1000);
+
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  })
+  .catch(err => console.log('DB Connection Error:', err));
