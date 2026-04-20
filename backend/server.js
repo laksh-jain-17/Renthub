@@ -29,7 +29,7 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // ✅ same config for preflight
 
 app.use((req, res, next) => {
-  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  res.setHeader('Cross-Origin-Opener-Policy', 'unsafe-none'); 
   res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
   next();
 });
