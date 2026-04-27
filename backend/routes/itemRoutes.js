@@ -1,13 +1,21 @@
-const express = require('express');
-const router  = express.Router();
-const Item    = require('../models/Item');
+const express    = require('express');
+const router     = express.Router();
+const Item       = require('../models/Item');
 const { authenticateToken } = require('../middleware/auth');
-const multer  = require('multer');
-const path    = require('path');
+const multer     = require('multer');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'uploads/'),
-  filename:    (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
+// ── Cloudinary config (CLOUDINARY_URL auto-configures everything) ─────────────
+cloudinary.config({ cloudinary_url: process.env.CLOUDINARY_URL });
+
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder:          'renthub',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+    transformation:  [{ width: 1000, quality: 'auto' }],
+  },
 });
 const upload = multer({ storage });
 
@@ -28,7 +36,7 @@ router.get('/all', async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// GET /api/items/owner/:userId  ← FIXES the 404
+// GET /api/items/owner/:userId
 router.get('/owner/:userId', authenticateToken, async (req, res) => {
   try {
     const items = await Item.find({ owner: req.params.userId });
@@ -44,7 +52,7 @@ router.get('/my', authenticateToken, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// GET /api/items/:id  ← MUST be after all named routes
+// GET /api/items/:id  ← must be after all named routes
 router.get('/:id', async (req, res) => {
   try {
     const item = await Item.findById(req.params.id).populate('owner', 'name email');
@@ -53,16 +61,17 @@ router.get('/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// POST /api/items/add  ← FIXES the 404
+// POST /api/items/add
 router.post('/add', authenticateToken, upload.single('image'), async (req, res) => {
   try {
     const { title, category, pricePerDay, description, owner } = req.body;
-    const image = req.file ? `/uploads/${req.file.filename}` : null;
+    // req.file.path is the full Cloudinary https:// URL
+    const image = req.file ? req.file.path : null;
     const item = new Item({
       title, category,
       pricePerDay: Number(pricePerDay),
       description,
-      owner: owner || req.user.id,
+      owner:  owner || req.user.id,
       images: image ? [image] : [],
     });
     await item.save();
@@ -74,7 +83,8 @@ router.post('/add', authenticateToken, upload.single('image'), async (req, res) 
 router.post('/', authenticateToken, upload.array('images', 5), async (req, res) => {
   try {
     const { title, description, category, pricePerDay, location } = req.body;
-    const images = req.files?.map(f => `/uploads/${f.filename}`) || [];
+    // req.files[].path are full Cloudinary https:// URLs
+    const images = req.files?.map(f => f.path) || [];
     const item = new Item({
       title, description, category,
       pricePerDay: Number(pricePerDay),
@@ -92,7 +102,7 @@ router.put('/:id', authenticateToken, upload.array('images', 5), async (req, res
     const item = await Item.findById(req.params.id);
     if (!item) return res.status(404).json({ message: 'Item not found' });
     const updates = req.body;
-    if (req.files?.length) updates.images = req.files.map(f => `/uploads/${f.filename}`);
+    if (req.files?.length) updates.images = req.files.map(f => f.path);
     const updated = await Item.findByIdAndUpdate(req.params.id, updates, { new: true });
     res.json(updated);
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -103,6 +113,20 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const item = await Item.findById(req.params.id);
     if (!item) return res.status(404).json({ message: 'Item not found' });
+
+    // Also delete images from Cloudinary
+    if (item.images?.length) {
+      await Promise.all(
+        item.images.map(url => {
+          // Extract public_id from URL: .../renthub/filename → renthub/filename
+          const parts    = url.split('/');
+          const filename = parts[parts.length - 1].split('.')[0];
+          const publicId = `renthub/${filename}`;
+          return cloudinary.uploader.destroy(publicId).catch(() => {});
+        })
+      );
+    }
+
     await item.deleteOne();
     res.json({ message: 'Item deleted' });
   } catch (err) { res.status(500).json({ message: err.message }); }
