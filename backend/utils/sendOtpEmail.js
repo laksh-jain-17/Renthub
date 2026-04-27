@@ -1,7 +1,18 @@
 const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
 
 const getResend = () => new Resend(process.env.RESEND_API_KEY);
 
+const getGmailTransporter = () =>
+  nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD,
+    },
+  });
+
+// ── ADMIN OTP — uses Resend (only sends to your own verified email) ────────────
 const sendOtpEmail = async (toEmail, otp) => {
   await getResend().emails.send({
     from: 'RentHub <onboarding@resend.dev>',
@@ -19,9 +30,10 @@ const sendOtpEmail = async (toEmail, otp) => {
   });
 };
 
+// ── REGISTRATION OTP — uses Gmail (can send to any email address) ─────────────
 const sendRegistrationOtpEmail = async (toEmail, otp) => {
-  await getResend().emails.send({
-    from: 'RentHub <onboarding@resend.dev>',
+  await getGmailTransporter().sendMail({
+    from: `RentHub <${process.env.GMAIL_USER}>`,
     to: toEmail,
     subject: 'Verify your RentHub account',
     html: `
@@ -36,9 +48,10 @@ const sendRegistrationOtpEmail = async (toEmail, otp) => {
   });
 };
 
+// ── PASSWORD CHANGED — uses Gmail (needs to reach any user's email) ───────────
 const sendPasswordChangedEmail = async (toEmail, userName) => {
-  await getResend().emails.send({
-    from: 'RentHub <onboarding@resend.dev>',
+  await getGmailTransporter().sendMail({
+    from: `RentHub <${process.env.GMAIL_USER}>`,
     to: toEmail,
     subject: 'Your RentHub password was changed',
     html: `
