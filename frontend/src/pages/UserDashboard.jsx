@@ -7,6 +7,8 @@ const GREEN_LIGHT = '#e6fffa';
 import API_BASE_URL from '../config';
 const API = API_BASE_URL;
 
+const isAdmin = () => JSON.parse(localStorage.getItem('userRoles') || '[]').includes('admin');
+
 const StarRating = ({ rating, size = '0.9rem' }) => {
   if (!rating || rating === 0) return <span style={{ color: '#bbb', fontSize: '0.78rem' }}>No reviews</span>;
   return (
@@ -59,6 +61,17 @@ const NavBar = ({ activeTab, setActiveTab, onLogout }) => {
         </div>
 
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {/* ✅ Admin Panel button — only visible to admin */}
+          {isAdmin() && (
+            <button
+              onClick={() => window.location.href = '/dashboard/admin'}
+              style={{
+                padding: '7px 16px', background: '#c62828', color: 'white',
+                border: 'none', borderRadius: '20px', cursor: 'pointer',
+                fontWeight: '700', fontSize: '0.85rem'
+              }}
+            >🔴 Admin Panel</button>
+          )}
           <button onClick={() => handleTab('profile')} style={{
             padding: '7px 18px',
             background: activeTab === 'profile' ? GREEN : 'white',
@@ -104,6 +117,17 @@ const NavBar = ({ activeTab, setActiveTab, onLogout }) => {
               borderLeft: activeTab === key ? `4px solid ${GREEN}` : '4px solid transparent'
             }}>{label}</button>
           ))}
+          {isAdmin() && (
+            <button
+              onClick={() => window.location.href = '/dashboard/admin'}
+              style={{
+                display: 'block', width: '100%', padding: '13px 24px',
+                border: 'none', background: '#fff5f5', color: '#c62828',
+                fontWeight: '700', cursor: 'pointer', fontSize: '0.95rem', textAlign: 'left',
+                borderLeft: '4px solid #c62828'
+              }}
+            >🔴 Admin Panel</button>
+          )}
         </div>
       )}
 
@@ -375,8 +399,6 @@ const MyBookings = () => {
                   <strong>Delivery:</strong> {b.deliveryType || 'Standard'}
                 </p>
                 <StatusBadge status={b.status} />
-
-                {/* Cancel button for pending bookings */}
                 {b.status === 'pending' && (
                   <button
                     onClick={() => handleCancel(b._id)}
@@ -388,8 +410,6 @@ const MyBookings = () => {
                     }}
                   >Cancel Booking</button>
                 )}
-
-                {/* Rate button for completed bookings */}
                 {b.status === 'completed' && (
                   reviewed[b._id] ? (
                     <p style={{ marginTop: '12px', fontSize: '0.82rem', color: GREEN, fontWeight: '600' }}>✓ Reviewed</p>
@@ -465,8 +485,6 @@ const MyListings = () => {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
   const [formData, setFormData] = useState({ title: '', category: 'camera', pricePerDay: '', description: '' });
-
-  // Edit state
   const [editingItem, setEditingItem] = useState(null);
   const [editForm, setEditForm] = useState({});
 
@@ -616,44 +634,26 @@ const MyListings = () => {
             <div style={{ height: '150px', background: item.images?.length > 0 ? `url(${item.images[0]}) center/cover` : '#f0fdf9', borderRadius: '15px 15px 0 0' }} />
             <div style={{ padding: '16px' }}>
               {editingItem === item._id ? (
-                // ── Edit mode ──
                 <div>
-                  <input
-                    value={editForm.title}
-                    onChange={e => setEditForm({ ...editForm, title: e.target.value })}
-                    placeholder="Title"
-                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd', marginBottom: '8px', boxSizing: 'border-box' }}
-                  />
-                  <select
-                    value={editForm.category}
-                    onChange={e => setEditForm({ ...editForm, category: e.target.value })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd', marginBottom: '8px', boxSizing: 'border-box' }}
-                  >
+                  <input value={editForm.title} onChange={e => setEditForm({ ...editForm, title: e.target.value })} placeholder="Title"
+                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd', marginBottom: '8px', boxSizing: 'border-box' }} />
+                  <select value={editForm.category} onChange={e => setEditForm({ ...editForm, category: e.target.value })}
+                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd', marginBottom: '8px', boxSizing: 'border-box' }}>
                     <option value="camera">Camera</option>
                     <option value="gaming">Gaming</option>
                     <option value="camping">Camping</option>
                     <option value="gym">Gym</option>
                   </select>
-                  <input
-                    type="number"
-                    value={editForm.pricePerDay}
-                    onChange={e => setEditForm({ ...editForm, pricePerDay: e.target.value })}
-                    placeholder="Price per day"
-                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd', marginBottom: '8px', boxSizing: 'border-box' }}
-                  />
-                  <textarea
-                    value={editForm.description}
-                    onChange={e => setEditForm({ ...editForm, description: e.target.value })}
-                    placeholder="Description"
-                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd', marginBottom: '10px', boxSizing: 'border-box', resize: 'vertical', minHeight: '60px' }}
-                  />
+                  <input type="number" value={editForm.pricePerDay} onChange={e => setEditForm({ ...editForm, pricePerDay: e.target.value })} placeholder="Price per day"
+                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd', marginBottom: '8px', boxSizing: 'border-box' }} />
+                  <textarea value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} placeholder="Description"
+                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd', marginBottom: '10px', boxSizing: 'border-box', resize: 'vertical', minHeight: '60px' }} />
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button onClick={() => handleEditSave(item._id)} style={{ flex: 1, padding: '8px', background: GREEN, color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem' }}>Save</button>
                     <button onClick={() => setEditingItem(null)} style={{ flex: 1, padding: '8px', background: '#f0f0f0', color: '#555', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem' }}>Cancel</button>
                   </div>
                 </div>
               ) : (
-                // ── View mode ──
                 <>
                   <h4 style={{ marginBottom: '4px', fontSize: '1.05rem', color: '#333' }}>{item.title}</h4>
                   <p style={{ color: '#aaa', fontSize: '0.8rem', marginBottom: '14px', textTransform: 'uppercase' }}>{item.category}</p>
@@ -772,8 +772,8 @@ const Earnings = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '30px' }}>
         {[
           { label: 'Total Earnings', value: `₹${data.total}`, color: 'white', bg: GREEN },
-          { label: 'This Month', value: `₹${data.thisMonth}`, color: GREEN, bg: 'white' },
-          { label: 'Pending', value: `₹${data.pending}`, color: '#f57c00', bg: 'white' },
+          { label: 'This Month',     value: `₹${data.thisMonth}`, color: GREEN, bg: 'white' },
+          { label: 'Pending',        value: `₹${data.pending}`, color: '#f57c00', bg: 'white' },
         ].map(({ label, value, color, bg }) => (
           <div key={label} style={{ background: bg, padding: '28px', borderRadius: '16px', boxShadow: '0 5px 15px rgba(0,0,0,0.07)', border: bg === 'white' ? '1px solid #eee' : 'none' }}>
             <div style={{ fontSize: '0.88rem', color: bg === GREEN ? 'rgba(255,255,255,0.85)' : '#888', marginBottom: '10px' }}>{label}</div>
@@ -934,6 +934,7 @@ const Profile = () => {
   if (loading) return <Loader text="Loading profile..." />;
 
   const inputStyle = { width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '0.95rem', boxSizing: 'border-box' };
+  const admin = isAdmin();
 
   return (
     <div style={{ maxWidth: '700px' }}>
@@ -941,16 +942,33 @@ const Profile = () => {
       {msg.text && (
         <div style={{ padding: '12px 18px', borderRadius: '10px', marginBottom: '20px', background: msg.type === 'ok' ? '#e6fffa' : '#fee', color: msg.type === 'ok' ? GREEN : '#c33', fontWeight: '500' }}>{msg.text}</div>
       )}
+
+      {/* ── Profile card ── */}
       <div style={{ background: 'white', borderRadius: '20px', padding: '30px', boxShadow: '0 5px 20px rgba(0,0,0,0.07)', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '22px' }}>
-        <div style={{ width: '75px', height: '75px', borderRadius: '50%', background: `linear-gradient(135deg, ${GREEN}, ${GREEN_DARK})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', color: 'white', fontWeight: '700', flexShrink: 0 }}>
+        <div style={{
+          width: '75px', height: '75px', borderRadius: '50%',
+          background: admin ? 'linear-gradient(135deg, #c62828, #e53935)' : `linear-gradient(135deg, ${GREEN}, ${GREEN_DARK})`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '2rem', color: 'white', fontWeight: '700', flexShrink: 0
+        }}>
           {(user?.name || 'U').charAt(0).toUpperCase()}
         </div>
         <div>
           <h2 style={{ margin: 0, color: '#333', fontSize: '1.3rem' }}>{user?.name}</h2>
           <p style={{ margin: '4px 0 0', color: '#aaa', fontSize: '0.85rem' }}>{user?.email}</p>
-          <span style={{ display: 'inline-block', marginTop: '6px', padding: '3px 12px', background: GREEN_LIGHT, color: GREEN, borderRadius: '12px', fontSize: '0.75rem', fontWeight: '700' }}>Buyer & Seller</span>
+          {/* ✅ Change 1 — Admin badge */}
+          <span style={{
+            display: 'inline-block', marginTop: '6px', padding: '3px 12px',
+            background: admin ? '#fee2e2' : GREEN_LIGHT,
+            color: admin ? '#c62828' : GREEN,
+            borderRadius: '12px', fontSize: '0.75rem', fontWeight: '700'
+          }}>
+            {admin ? '🔴 Admin' : 'Buyer & Seller'}
+          </span>
         </div>
       </div>
+
+      {/* ── Personal info form ── */}
       <div style={{ background: 'white', borderRadius: '20px', padding: '30px', boxShadow: '0 5px 20px rgba(0,0,0,0.07)', marginBottom: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px' }}>
           <h3 style={{ margin: 0, color: '#333' }}>Personal Information</h3>
@@ -960,19 +978,21 @@ const Profile = () => {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px', marginBottom: '18px' }}>
             {[
               { label: 'Full Name', key: 'name', type: 'text' },
-              { label: 'Email', key: 'email', type: 'email', disabled: true },
-              { label: 'Phone', key: 'phone', type: 'tel' },
+              { label: 'Email',     key: 'email', type: 'email', disabled: true },
+              { label: 'Phone',     key: 'phone', type: 'tel' },
             ].map(({ label, key, type, disabled }) => (
               <div key={key}>
                 <label style={{ display: 'block', marginBottom: '6px', color: '#666', fontSize: '0.85rem', fontWeight: '500' }}>{label}</label>
-                <input type={type} value={formData[key]} onChange={e => setFormData({ ...formData, [key]: e.target.value })} disabled={!editing || disabled}
+                <input type={type} value={formData[key]} onChange={e => setFormData({ ...formData, [key]: e.target.value })}
+                  disabled={!editing || disabled}
                   style={{ ...inputStyle, background: (!editing || disabled) ? '#f9f9f9' : 'white' }} />
               </div>
             ))}
           </div>
           <div style={{ marginBottom: '20px' }}>
             <label style={{ display: 'block', marginBottom: '6px', color: '#666', fontSize: '0.85rem', fontWeight: '500' }}>Address</label>
-            <textarea value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} disabled={!editing}
+            <textarea value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })}
+              disabled={!editing}
               style={{ ...inputStyle, minHeight: '80px', resize: 'vertical', background: !editing ? '#f9f9f9' : 'white' }} />
           </div>
           {editing && (
@@ -984,22 +1004,33 @@ const Profile = () => {
           )}
         </form>
       </div>
-      <div style={{ background: 'white', borderRadius: '20px', padding: '30px', boxShadow: '0 5px 20px rgba(0,0,0,0.07)' }}>
-        <h3 style={{ margin: '0 0 22px', color: '#333' }}>Change Password</h3>
-        <form onSubmit={handleChangePassword}>
-          {[
-            { label: 'Current Password', key: 'currentPassword' },
-            { label: 'New Password', key: 'newPassword' },
-            { label: 'Confirm New Password', key: 'confirmPassword' },
-          ].map(({ label, key }) => (
-            <div key={key} style={{ marginBottom: '18px' }}>
-              <label style={{ display: 'block', marginBottom: '6px', color: '#666', fontSize: '0.85rem', fontWeight: '500' }}>{label}</label>
-              <input type="password" value={pwData[key]} onChange={e => setPwData({ ...pwData, [key]: e.target.value })} style={inputStyle} required />
-            </div>
-          ))}
-          <button type="submit" style={{ padding: '11px 28px', background: GREEN, color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}>Change Password</button>
-        </form>
-      </div>
+
+      {/* ✅ Change 2 — Password section: hidden for admin */}
+      {admin ? (
+        <div style={{ background: '#fff3e0', borderRadius: '20px', padding: '24px 30px', boxShadow: '0 5px 20px rgba(0,0,0,0.07)' }}>
+          <h3 style={{ margin: '0 0 8px', color: '#f57c00' }}>Change Password</h3>
+          <p style={{ color: '#888', fontSize: '0.9rem', margin: 0 }}>
+            Admin password is managed via server environment variables and cannot be changed here.
+          </p>
+        </div>
+      ) : (
+        <div style={{ background: 'white', borderRadius: '20px', padding: '30px', boxShadow: '0 5px 20px rgba(0,0,0,0.07)' }}>
+          <h3 style={{ margin: '0 0 22px', color: '#333' }}>Change Password</h3>
+          <form onSubmit={handleChangePassword}>
+            {[
+              { label: 'Current Password',    key: 'currentPassword' },
+              { label: 'New Password',         key: 'newPassword' },
+              { label: 'Confirm New Password', key: 'confirmPassword' },
+            ].map(({ label, key }) => (
+              <div key={key} style={{ marginBottom: '18px' }}>
+                <label style={{ display: 'block', marginBottom: '6px', color: '#666', fontSize: '0.85rem', fontWeight: '500' }}>{label}</label>
+                <input type="password" value={pwData[key]} onChange={e => setPwData({ ...pwData, [key]: e.target.value })} style={inputStyle} required />
+              </div>
+            ))}
+            <button type="submit" style={{ padding: '11px 28px', background: GREEN, color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}>Change Password</button>
+          </form>
+        </div>
+      )}
     </div>
   );
 };
@@ -1025,9 +1056,9 @@ const EmptyState = ({ icon, title, sub }) => (
 const StatusBadge = ({ status }) => {
   const map = {
     active:    { bg: GREEN_LIGHT, color: GREEN },
-    completed: { bg: '#e8f5e9', color: '#2e7d32' },
-    cancelled: { bg: '#ffebee', color: '#c62828' },
-    pending:   { bg: '#fff3e0', color: '#f57c00' },
+    completed: { bg: '#e8f5e9',   color: '#2e7d32' },
+    cancelled: { bg: '#ffebee',   color: '#c62828' },
+    pending:   { bg: '#fff3e0',   color: '#f57c00' },
   };
   const s = map[status] || map.pending;
   return (
