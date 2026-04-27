@@ -189,7 +189,6 @@ if (cleanEmail === ADMIN_EMAIL) {
 });
 
 // ── VERIFY ADMIN OTP ──────────────────────────────────────────────────────────
-
 router.post('/verify-otp', async (req, res) => {
   try {
     const { email, otp } = req.body;
@@ -205,11 +204,26 @@ router.post('/verify-otp', async (req, res) => {
 
     adminOtpStore = null;
 
-    const token = signAccessToken({ id: 'admin', email: ADMIN_EMAIL, roles: ['admin'] });
+    // ✅ FIX: fetch real admin user from DB to get the actual MongoDB _id
+    const adminUser = await User.findOne({ email: ADMIN_EMAIL });
+    if (!adminUser)
+      return res.status(404).json({ message: 'Admin user not found in database' });
+
+    const token = signAccessToken({
+      id:    adminUser._id,
+      email: ADMIN_EMAIL,
+      roles: ['admin']
+    });
+
     return res.json({
       success: true,
       token,
-      user: { id: 'admin', email: ADMIN_EMAIL, name: 'Admin', roles: ['admin'] },
+      user: {
+        id:    adminUser._id,
+        email: ADMIN_EMAIL,
+        name:  adminUser.name || 'Admin',
+        roles: ['admin']
+      },
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
