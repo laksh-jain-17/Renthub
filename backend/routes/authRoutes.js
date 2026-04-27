@@ -1,5 +1,3 @@
-// backend/routes/authRoutes.js
-
 const express = require('express');
 const router  = express.Router();
 const bcrypt  = require('bcryptjs');
@@ -64,7 +62,12 @@ router.post('/register', async (req, res) => {
       await newUser.save();
     }
 
-    await sendRegistrationOtpEmail(cleanEmail, otp);
+    try {
+      await sendRegistrationOtpEmail(cleanEmail, otp);
+    } catch (mailErr) {
+      console.error('Registration OTP email failed:', mailErr.message);
+      return res.status(500).json({ message: `OTP email failed: ${mailErr.message}` });
+    }
 
     res.status(201).json({
       message: 'OTP sent to your email. Please verify to complete registration.',
@@ -126,7 +129,12 @@ router.post('/resend-verification-otp', async (req, res) => {
     user.verifyOtp       = hashOtp(otp);
     user.verifyOtpExpiry = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
-    await sendRegistrationOtpEmail(email.toLowerCase(), otp);
+    try {
+      await sendRegistrationOtpEmail(email.toLowerCase(), otp);
+    } catch (mailErr) {
+      console.error('Resend registration OTP failed:', mailErr.message);
+      return res.status(500).json({ message: `OTP email failed: ${mailErr.message}` });
+    }
 
     res.json({ success: true, message: 'OTP resent successfully.' });
   } catch (err) {
