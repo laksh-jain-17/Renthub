@@ -9,16 +9,6 @@ const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate()+n); ret
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
-const loadRazorpayScript = () =>
-  new Promise(resolve => {
-    if (window.Razorpay) return resolve(true);
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.onload  = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-
 // ✅ Star display component
 const StarRating = ({ rating, size = '1rem' }) => (
   <span style={{ display: 'inline-flex', gap: '1px' }}>
@@ -38,7 +28,7 @@ const StarPicker = ({ value, onChange }) => (
   </span>
 );
 
-/* ─── Calendar component (unchanged) ───────────────────────── */
+/* ─── Calendar component ───────────────────────── */
 const RentalCalendar = ({ bookedRanges, onRangeSelect }) => {
   const [viewDate, setViewDate]   = useState(today());
   const [hoverDay, setHoverDay]   = useState(null);
@@ -152,12 +142,11 @@ const ProductDetail = () => {
   const [bookedRanges, setBookedRanges] = useState([]);
   const [selectedStart, setSelectedStart] = useState(null);
   const [selectedEnd, setSelectedEnd]     = useState(null);
-  const [booking, setBooking]       = useState(false);
   const [bookingError, setBookingError]   = useState('');
 
   // ✅ Review state
   const [reviews, setReviews]           = useState([]);
-  const [reviewableBooking, setReviewableBooking] = useState(null); // bookingId user can review
+  const [reviewableBooking, setReviewableBooking] = useState(null);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
   const [reviewLoading, setReviewLoading] = useState(false);
@@ -181,7 +170,6 @@ const ProductDetail = () => {
     } catch {}
   };
 
-  // ✅ Fetch reviews for this item
   const fetchReviews = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/reviews/${id}`);
@@ -189,7 +177,6 @@ const ProductDetail = () => {
     } catch {}
   };
 
-  // ✅ Check if logged-in user has a completed booking they can review
   const checkReviewEligibility = async () => {
     const userId = localStorage.getItem('userId');
     const token  = localStorage.getItem('token');
@@ -198,7 +185,6 @@ const ProductDetail = () => {
       const bookingsRes = await authFetch(`${API_BASE_URL}/api/bookings/user/${userId}`);
       if (!bookingsRes.ok) return;
       const bookings = await bookingsRes.json();
-      // Find completed booking for this item that hasn't been reviewed
       for (const b of bookings) {
         if (b.item?._id === id && b.status === 'completed') {
           const checkRes = await authFetch(`${API_BASE_URL}/api/reviews/can-review/${b._id}`);
@@ -211,7 +197,6 @@ const ProductDetail = () => {
     } catch {}
   };
 
-  // ✅ Submit review
   const handleSubmitReview = async (e) => {
     e.preventDefault();
     if (reviewRating === 0) { setReviewMsg({ type: 'err', text: 'Please select a star rating.' }); return; }
@@ -220,7 +205,7 @@ const ProductDetail = () => {
       const res = await authFetch(`${API_BASE_URL}/api/reviews`, {
         method: 'POST',
         body: JSON.stringify({ itemId: id, bookingId: reviewableBooking, rating: reviewRating, comment: reviewComment })
-        });
+      });
       const data = await res.json();
       if (res.ok) {
         setReviewMsg({ type: 'ok', text: 'Review submitted! Thank you.' });
@@ -228,7 +213,7 @@ const ProductDetail = () => {
         setReviewRating(0);
         setReviewComment('');
         fetchReviews();
-        fetchItemDetails(); // refresh rating
+        fetchItemDetails();
       } else {
         setReviewMsg({ type: 'err', text: data.message || 'Failed to submit review' });
       }
@@ -240,65 +225,21 @@ const ProductDetail = () => {
   const calculateTotal = () => item ? item.pricePerDay * calculateDays() : 0;
   const handleRangeSelect = (start, end) => { setSelectedStart(start); setSelectedEnd(end); setBookingError(''); };
 
-  // Replace handleCheckout with this:
-const handleCheckout = async () => {
-  const userId = localStorage.getItem('userId');
-  const token  = localStorage.getItem('token');
-  if (!token)  { alert('Please login to continue'); navigate('/login'); return; }
-  if (!selectedStart || !selectedEnd) { setBookingError('Please select your rental dates.'); return; }
+  // ✅ UPDATED: Navigate to Checkout page instead of opening Razorpay directly
+  const handleCheckout = () => {
+    const token = localStorage.getItem('token');
+    if (!token) { alert('Please login to continue'); navigate('/login'); return; }
+    if (!selectedStart || !selectedEnd) { setBookingError('Please select your rental dates.'); return; }
 
-  setBooking(true); setBookingError('');
-  try {
-    // Step 1 — load Razorpay SDK
-    const loaded = await loadRazorpayScript();
-    if (!loaded) { setBookingError('Razorpay failed to load. Check your internet.'); setBooking(false); return; }
-
-    // Step 2 — create Razorpay order on backend
-    const orderRes = await authFetch(`${API_BASE_URL}/api/bookings/create-razorpay-order`, {
-      method: 'POST',
-      body: JSON.stringify({ itemId: item._id, startDate: isoDate(selectedStart), endDate: isoDate(selectedEnd), totalPrice: calculateTotal() })
-    });
-    const orderData = await orderRes.json();
-    if (!orderRes.ok) { setBookingError(orderData.message || 'Could not create order.'); setBooking(false); return; }
-
-    // Step 3 — open Razorpay checkout
-    const options = {
-      key:         import.meta.env.VITE_RAZORPAY_KEY_ID,
-      amount:      orderData.amount,
-      currency:    'INR',
-      order_id:    orderData.orderId,
-      name:        'RentHub',
-      description: `Rental: ${item.title}`,
-      prefill:     { name: localStorage.getItem('userName') || '', },
-      theme:       { color: '#32be8f' },
-      handler: async (response) => {
-        // Step 4 — verify payment and save booking
-        const verifyRes = await authFetch(`${API_BASE_URL}/api/bookings/verify-payment`, {
-          method: 'POST',
-          body: JSON.stringify({
-            ...response,
-            itemId:     item._id,
-            startDate:  isoDate(selectedStart),
-            endDate:    isoDate(selectedEnd),
-            totalPrice: calculateTotal(),
-          })
-        });
-        const verifyData = await verifyRes.json();
-        if (verifyRes.ok) {
-          alert('🎉 Booking confirmed! Check "My Bookings" to view your rental.');
-          navigate('/dashboard');
-        } else {
-          setBookingError(verifyData.message || 'Payment verification failed.');
-        }
-        setBooking(false);
-      },
-      modal: {
-        ondismiss: () => { setBookingError('Payment cancelled.'); setBooking(false); }
+    navigate('/checkout', {
+      state: {
+        item,
+        startDate: isoDate(selectedStart),
+        endDate: isoDate(selectedEnd),
+        totalPrice: calculateTotal(),
       }
-    };
-    new window.Razorpay(options).open();
-  } catch { setBookingError('Connection error. Please try again.'); setBooking(false); }
-};
+    });
+  };
 
   if (loading) return (
     <div style={{ height:'100vh', display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -355,7 +296,6 @@ const handleCheckout = async () => {
             <div style={{ marginBottom:24 }}>
               <span style={{ display:'inline-block', padding:'4px 14px', background:'#f0f0ee', borderRadius:20, fontSize:'0.75rem', fontWeight:700, color:'#888', textTransform:'uppercase', letterSpacing:'0.6px', marginBottom:12 }}>{item.category}</span>
               <h1 style={{ fontFamily:"'DM Serif Display',serif", fontSize:'2.4rem', color:'#111', lineHeight:1.15, marginBottom:10 }}>{item.title}</h1>
-              {/* ✅ Real star rating */}
               <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                 <StarRating rating={item.rating || 0} size="1.1rem" />
                 <span style={{ color:'#666', fontSize:'0.85rem' }}>
@@ -389,8 +329,9 @@ const handleCheckout = async () => {
 
             {bookingError && <div style={{ background:'#fef2f2', border:'1px solid #fca5a5', color:'#b91c1c', padding:'12px 16px', borderRadius:10, fontSize:'0.85rem', marginBottom:16 }}>{bookingError}</div>}
 
-            <button className="btn-book" onClick={handleCheckout} disabled={!ready || booking} style={{ width:'100%', padding:'17px', background:ready?'#32be8f':'#d1d5db', color:'#fff', border:'none', borderRadius:12, fontSize:'1.05rem', fontWeight:700, cursor:ready?'pointer':'not-allowed' }}>
-              {booking ? 'Confirming…' : ready ? `Confirm Booking · ₹${total}` : 'Pick dates above to continue'}
+            {/* ✅ UPDATED: Button now navigates to Checkout */}
+            <button className="btn-book" onClick={handleCheckout} disabled={!ready} style={{ width:'100%', padding:'17px', background:ready?'#32be8f':'#d1d5db', color:'#fff', border:'none', borderRadius:12, fontSize:'1.05rem', fontWeight:700, cursor:ready?'pointer':'not-allowed' }}>
+              {ready ? `Proceed to Checkout · ₹${total}` : 'Pick dates above to continue'}
             </button>
 
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginTop:16 }}>
@@ -401,13 +342,12 @@ const handleCheckout = async () => {
           </div>
         </div>
 
-        {/* ✅ REVIEWS SECTION */}
+        {/* REVIEWS SECTION */}
         <div style={{ maxWidth:1200, margin:'48px auto 0' }}>
           <h2 style={{ fontFamily:"'DM Serif Display',serif", fontSize:'1.8rem', color:'#111', marginBottom:24 }}>
             Reviews {reviews.length > 0 && <span style={{ fontSize:'1rem', color:'#999', fontFamily:"'DM Sans',sans-serif" }}>({reviews.length})</span>}
           </h2>
 
-          {/* Submit review form — only shown if user has completed booking */}
           {reviewableBooking && (
             <div style={{ background:'#fff', borderRadius:20, padding:'28px', marginBottom:32, boxShadow:'0 2px 16px rgba(0,0,0,0.07)', border:'2px solid #6ee7c7' }}>
               <h3 style={{ marginBottom:16, color:'#333' }}>Leave a Review</h3>
@@ -436,7 +376,6 @@ const handleCheckout = async () => {
             </div>
           )}
 
-          {/* Reviews list */}
           {reviews.length === 0 ? (
             <div style={{ background:'#fff', borderRadius:16, padding:'40px', textAlign:'center', color:'#aaa', boxShadow:'0 2px 12px rgba(0,0,0,0.05)' }}>
               <p style={{ fontSize:'1.1rem' }}>No reviews yet</p>
