@@ -1,10 +1,10 @@
-const express = require('express');
+const express  = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors');
+const cors     = require('cors');
+const bcrypt   = require('bcryptjs');
 require('dotenv').config();
 
 const autoCompleteBookings = require('./cron/autoComplete');
-
 const app = express();
 
 const allowedOrigins = [
@@ -13,7 +13,6 @@ const allowedOrigins = [
   'http://localhost:3000',
 ].filter(Boolean);
 
-// Define your corsOptions as a variable first
 const corsOptions = {
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
@@ -26,14 +25,12 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // ✅ same config for preflight
-
+app.options('*', cors(corsOptions));
 app.use((req, res, next) => {
-  res.setHeader('Cross-Origin-Opener-Policy', 'unsafe-none'); 
+  res.setHeader('Cross-Origin-Opener-Policy', 'unsafe-none');
   res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
   next();
 });
-
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
@@ -57,11 +54,48 @@ app.use('/api/reviews',  reviewRoutes);
 
 const PORT = process.env.PORT || 10000;
 
+// ── Seed admin user ────────────────────────────────────────────────────────────
+const User = require('./models/User');
+
+const seedAdmin = async () => {
+  const adminEmail = process.env.ADMIN_EMAIL;
+  const adminPass  = process.env.ADMIN_PASSWORD;
+
+  if (!adminEmail || !adminPass) {
+    console.warn('⚠️  ADMIN_EMAIL or ADMIN_PASSWORD not set in .env — skipping admin seed');
+    return;
+  }
+
+  const existing = await User.findOne({ email: adminEmail });
+  if (!existing) {
+    const hashed = await bcrypt.hash(adminPass, 10);
+    await User.create({
+      name:          'Admin',
+      email:         adminEmail,
+      password:      hashed,
+      roles:         ['admin'],
+      emailVerified: true,
+    });
+    console.log('✅ Admin user seeded to DB');
+  } else if (!existing.roles?.includes('admin')) {
+    // Fix existing user that may have wrong roles
+    existing.roles = ['admin'];
+    existing.emailVerified = true;
+    await existing.save();
+    console.log('✅ Admin user roles updated');
+  } else {
+    console.log('✅ Admin user already exists in DB');
+  }
+};
+
+// ── Start server ───────────────────────────────────────────────────────────────
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/renthub')
-  .then(() => {
+  .then(async () => {
     console.log('MongoDB Connected');
 
-    // ✅ Only start cron AFTER DB is ready
+    // Seed admin BEFORE starting cron and server
+    await seedAdmin();
+
     autoCompleteBookings();
     setInterval(autoCompleteBookings, 60 * 60 * 1000);
 
