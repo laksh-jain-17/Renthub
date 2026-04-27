@@ -165,6 +165,9 @@ router.post('/create', authenticateToken, async (req, res) => {
 // POST /api/bookings/create-razorpay-order
 router.post('/create-razorpay-order', authenticateToken, async (req, res) => {
   try {
+    console.log('KEY_ID:', process.env.RAZORPAY_KEY_ID);
+    console.log('KEY_SECRET exists:', !!process.env.RAZORPAY_KEY_SECRET);
+    console.log('SECRET length:', process.env.RAZORPAY_KEY_SECRET?.length);
     const { itemId, startDate, endDate, totalPrice } = req.body;
 
     const item = await Item.findById(itemId);
