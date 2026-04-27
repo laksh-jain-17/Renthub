@@ -192,6 +192,7 @@ const ProductDetail = () => {
   // ✅ Check if logged-in user has a completed booking they can review
   const checkReviewEligibility = async () => {
     const userId = localStorage.getItem('userId');
+    const token  = localStorage.getItem('token');
     if (!token || !userId) return;
     try {
       const bookingsRes = await authFetch(`${API_BASE_URL}/api/bookings/user/${userId}`);
