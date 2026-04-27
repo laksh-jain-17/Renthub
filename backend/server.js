@@ -3,8 +3,8 @@ const mongoose = require('mongoose');
 const cors     = require('cors');
 const bcrypt   = require('bcryptjs');
 require('dotenv').config();
-
 const autoCompleteBookings = require('./cron/autoComplete');
+
 const app = express();
 
 const allowedOrigins = [
@@ -26,13 +26,18 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
+
 app.use((req, res, next) => {
   res.setHeader('Cross-Origin-Opener-Policy', 'unsafe-none');
   res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
   next();
 });
+
 app.use(express.json());
-app.use('/uploads', express.static('uploads'));
+
+// ❌ REMOVED: app.use('/uploads', express.static('uploads'));
+// Images are now stored on Cloudinary — never on local disk.
+// Render's filesystem is ephemeral; local uploads vanish on every deploy.
 
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', uptime: process.uptime() });
@@ -67,6 +72,7 @@ const seedAdmin = async () => {
   }
 
   const existing = await User.findOne({ email: adminEmail });
+
   if (!existing) {
     const hashed = await bcrypt.hash(adminPass, 10);
     await User.create({
@@ -78,7 +84,6 @@ const seedAdmin = async () => {
     });
     console.log('✅ Admin user seeded to DB');
   } else if (!existing.roles?.includes('admin')) {
-    // Fix existing user that may have wrong roles
     existing.roles = ['admin'];
     existing.emailVerified = true;
     await existing.save();
@@ -92,13 +97,9 @@ const seedAdmin = async () => {
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/renthub')
   .then(async () => {
     console.log('MongoDB Connected');
-
-    // Seed admin BEFORE starting cron and server
     await seedAdmin();
-
     autoCompleteBookings();
     setInterval(autoCompleteBookings, 60 * 60 * 1000);
-
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   })
   .catch(err => console.log('DB Connection Error:', err));
