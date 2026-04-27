@@ -1221,6 +1221,23 @@ const AdminDashboard = () => {
         }}>ADMIN PANEL</div>
         
         <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <button
+            onClick={() => navigate('/dashboard')}
+            style={{
+                padding: '12px 15px',
+                borderRadius: '10px',
+                border: 'none',
+                background: '#e6fffa',
+                color: '#32be8f',
+                fontWeight: '700',
+                cursor: 'pointer',
+                textAlign: 'left',
+                fontSize: '1rem',
+                marginBottom: '6px'
+            }}
+          >
+            Dashboard
+          </button>
           <Link to="/dashboard/admin" onClick={() => setActiveTab('users')} style={{
             padding: '12px 15px',
             borderRadius: '10px',
