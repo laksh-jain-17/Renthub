@@ -71,22 +71,21 @@ function App() {
           }
         />
 
-        {/* Protected: unified dashboard for all non-admin users */}
-        <Route
-          path="/dashboard/*"
-          element={
-            <ProtectedRoute>
-              <UserDashboard />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Protected: admin only */}
         <Route
           path="/dashboard/admin/*"
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Protected: all logged-in users including admin */}
+        <Route
+          path="/dashboard/*"
+          element={
+            <ProtectedRoute>
+              <UserDashboard />
             </ProtectedRoute>
           }
         />
