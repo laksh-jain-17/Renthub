@@ -7,6 +7,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import UserProfile    from './pages/UserProfile';
 import Catalog        from './pages/Catalog';
 import ProductDetail  from './pages/ProductDetail';
+import Checkout       from './pages/Checkout';         // ✅ Added
 import BookingSuccess from './pages/BookingSuccess';
 import AdminDashboard from './pages/AdminDashboard';
 import UserDashboard  from './pages/UserDashboard';
@@ -58,8 +59,18 @@ function App() {
         <Route path="/register"        element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/catalog"         element={<Catalog />} />
-        <Route path="/item/:id"        element={<ProductDetail />} />
+        <Route path="/items/:id"       element={<ProductDetail />} />  {/* ✅ Fixed: was /item/:id, must match Checkout's back-link */}
         <Route path="/booking-success" element={<BookingSuccess />} />
+
+        {/* Protected: checkout */}
+        <Route
+          path="/checkout"
+          element={
+            <ProtectedRoute>
+              <Checkout />                                              {/* ✅ Added */}
+            </ProtectedRoute>
+          }
+        />
 
         {/* Protected: user profile */}
         <Route
