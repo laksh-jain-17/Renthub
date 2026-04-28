@@ -20,6 +20,226 @@ const StarRating = ({ rating, size = '0.9rem' }) => {
   );
 };
 
+// ── Profile Completion Banner ────────────────────────────────────────────────
+
+const getProfileCompletion = (user) => {
+  if (!user) return { percent: 0, missing: [], filled: [] };
+  const fields = [
+    { key: 'name',    label: 'Full Name',    icon: '👤' },
+    { key: 'email',   label: 'Email',        icon: '📧' },
+    { key: 'phone',   label: 'Phone Number', icon: '📱' },
+    { key: 'address', label: 'Address',      icon: '📍' },
+  ];
+  const filled  = fields.filter(f => user[f.key] && String(user[f.key]).trim() !== '');
+  const missing = fields.filter(f => !user[f.key] || String(user[f.key]).trim() === '');
+  const percent = Math.round((filled.length / fields.length) * 100);
+  return { percent, missing, filled };
+};
+
+const ProfileCompletionBanner = ({ onGoToProfile }) => {
+  const [user, setUser] = useState(null);
+  const [dismissed, setDismissed] = useState(false);
+  const [animating, setAnimating] = useState(false);
+
+  useEffect(() => {
+    const token  = localStorage.getItem('token');
+    const userId = localStorage.getItem('userId');
+    if (!token || !userId) return;
+    fetch(`${API}/api/users/${userId}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) {
+          setUser(data);
+          // Trigger bar animation after mount
+          setTimeout(() => setAnimating(true), 100);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  if (!user || dismissed) return null;
+
+  const { percent, missing, filled } = getProfileCompletion(user);
+
+  // Don't show if 100% complete
+  if (percent === 100) return null;
+
+  const isLow    = percent < 50;
+  const isMid    = percent >= 50 && percent < 75;
+  const isAlmost = percent >= 75;
+
+  const barColor  = isLow ? '#f59e0b' : isMid ? '#3b82f6' : GREEN;
+  const bgGrad    = isLow
+    ? 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)'
+    : isMid
+    ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)'
+    : 'linear-gradient(135deg, #f0fdf9 0%, #d1fae5 100%)';
+  const borderCol = isLow ? '#fbbf24' : isMid ? '#93c5fd' : '#6ee7c7';
+  const textColor = isLow ? '#92400e' : isMid ? '#1e40af' : '#065f46';
+  const tagBg     = isLow ? '#fef3c7' : isMid ? '#dbeafe' : '#d1fae5';
+  const tagColor  = isLow ? '#b45309' : isMid ? '#1d4ed8' : GREEN_DARK;
+
+  const emoji  = isLow ? '⚡' : isMid ? '🚀' : '✨';
+  const label  = isLow
+    ? 'Your profile needs attention!'
+    : isMid
+    ? "You're halfway there!"
+    : 'Almost complete!';
+
+  return (
+    <div style={{
+      background: bgGrad,
+      border: `1.5px solid ${borderCol}`,
+      borderRadius: '20px',
+      padding: '20px 24px',
+      marginBottom: '32px',
+      position: 'relative',
+      overflow: 'hidden',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
+      animation: 'bannerSlideIn 0.4s ease',
+    }}>
+
+      {/* Decorative background circles */}
+      <div style={{
+        position: 'absolute', top: '-30px', right: '-30px',
+        width: '120px', height: '120px', borderRadius: '50%',
+        background: borderCol, opacity: 0.15, pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'absolute', bottom: '-20px', right: '80px',
+        width: '70px', height: '70px', borderRadius: '50%',
+        background: borderCol, opacity: 0.1, pointerEvents: 'none',
+      }} />
+
+      <style>{`
+        @keyframes bannerSlideIn {
+          from { opacity: 0; transform: translateY(-12px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes barFill {
+          from { width: 0%; }
+        }
+        .profile-banner-dismiss {
+          opacity: 0.5; transition: opacity 0.2s;
+        }
+        .profile-banner-dismiss:hover { opacity: 1; }
+        .complete-btn {
+          transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .complete-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 18px rgba(0,0,0,0.15) !important;
+        }
+        .missing-chip {
+          transition: transform 0.15s;
+        }
+        .missing-chip:hover { transform: scale(1.04); }
+      `}</style>
+
+      {/* Dismiss button */}
+      <button
+        className="profile-banner-dismiss"
+        onClick={() => setDismissed(true)}
+        style={{
+          position: 'absolute', top: '14px', right: '16px',
+          background: 'none', border: 'none', cursor: 'pointer',
+          fontSize: '1.1rem', color: textColor, lineHeight: 1,
+          padding: '2px 6px', borderRadius: '6px',
+        }}
+        title="Dismiss"
+      >✕</button>
+
+      <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+
+        {/* Left: progress ring + percent */}
+        <div style={{
+          flexShrink: 0,
+          width: '72px', height: '72px', position: 'relative',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <svg width="72" height="72" viewBox="0 0 72 72" style={{ position: 'absolute', top: 0, left: 0, transform: 'rotate(-90deg)' }}>
+            <circle cx="36" cy="36" r="30" fill="none" stroke={borderCol} strokeWidth="6" opacity="0.4" />
+            <circle
+              cx="36" cy="36" r="30" fill="none"
+              stroke={barColor} strokeWidth="6"
+              strokeDasharray={`${2 * Math.PI * 30}`}
+              strokeDashoffset={`${2 * Math.PI * 30 * (1 - (animating ? percent : 0) / 100)}`}
+              strokeLinecap="round"
+              style={{ transition: 'stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1)' }}
+            />
+          </svg>
+          <div style={{ textAlign: 'center', zIndex: 1 }}>
+            <div style={{ fontSize: '1.1rem', fontWeight: '800', color: textColor, lineHeight: 1 }}>{percent}%</div>
+          </div>
+        </div>
+
+        {/* Right: content */}
+        <div style={{ flex: 1, minWidth: '200px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '1rem' }}>{emoji}</span>
+            <span style={{ fontWeight: '700', color: textColor, fontSize: '0.98rem' }}>{label}</span>
+            <span style={{
+              padding: '2px 10px', borderRadius: '20px',
+              background: tagBg, color: tagColor,
+              fontSize: '0.72rem', fontWeight: '700', letterSpacing: '0.5px', textTransform: 'uppercase'
+            }}>
+              {filled.length}/{filled.length + missing.length} fields
+            </span>
+          </div>
+
+          {/* Linear progress bar */}
+          <div style={{
+            height: '7px', background: `${borderCol}55`, borderRadius: '10px',
+            marginBottom: '12px', overflow: 'hidden',
+          }}>
+            <div style={{
+              height: '100%', borderRadius: '10px', background: barColor,
+              width: animating ? `${percent}%` : '0%',
+              transition: 'width 1s cubic-bezier(0.4,0,0.2,1)',
+            }} />
+          </div>
+
+          {/* Missing fields chips */}
+          {missing.length > 0 && (
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
+              {missing.map(f => (
+                <span
+                  key={f.key}
+                  className="missing-chip"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '5px',
+                    padding: '4px 12px', borderRadius: '20px',
+                    background: 'rgba(255,255,255,0.7)', border: `1px solid ${borderCol}`,
+                    fontSize: '0.78rem', fontWeight: '600', color: textColor, cursor: 'default',
+                  }}
+                >
+                  {f.icon} {f.label} <span style={{ color: isLow ? '#ef4444' : '#94a3b8', fontSize: '0.7rem' }}>missing</span>
+                </span>
+              ))}
+            </div>
+          )}
+
+          <button
+            className="complete-btn"
+            onClick={onGoToProfile}
+            style={{
+              padding: '9px 22px',
+              background: barColor, color: 'white',
+              border: 'none', borderRadius: '10px',
+              cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem',
+              boxShadow: `0 4px 12px ${barColor}55`,
+            }}
+          >
+            Complete Profile →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── NavBar ───────────────────────────────────────────────────────────────────
+
 const NavBar = ({ activeTab, setActiveTab, onLogout }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const tabs = [
@@ -45,7 +265,6 @@ const NavBar = ({ activeTab, setActiveTab, onLogout }) => {
           RENTHUB
         </span>
 
-        {/* Desktop tabs */}
         <div style={{ display: 'flex', gap: '3px', alignItems: 'center', flexWrap: 'nowrap' }}
           className="desktop-tabs">
           {tabs.map(({ key, label }) => (
@@ -61,7 +280,6 @@ const NavBar = ({ activeTab, setActiveTab, onLogout }) => {
         </div>
 
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          {/* ✅ Admin Panel button — only visible to admin */}
           {isAdmin() && (
             <button
               onClick={() => window.location.href = '/dashboard/admin'}
@@ -84,7 +302,6 @@ const NavBar = ({ activeTab, setActiveTab, onLogout }) => {
             border: '2px solid #e57373', borderRadius: '20px',
             color: '#e57373', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem'
           }}>Logout</button>
-          {/* Hamburger for mobile */}
           <button
             onClick={() => setMenuOpen(o => !o)}
             style={{
@@ -100,7 +317,6 @@ const NavBar = ({ activeTab, setActiveTab, onLogout }) => {
         </div>
       </nav>
 
-      {/* Mobile dropdown menu */}
       {menuOpen && (
         <div style={{
           position: 'fixed', top: '65px', left: 0, right: 0, zIndex: 99,
@@ -141,7 +357,9 @@ const NavBar = ({ activeTab, setActiveTab, onLogout }) => {
   );
 };
 
-const BrowseItems = () => {
+// ── BrowseItems (with Profile Banner) ───────────────────────────────────────
+
+const BrowseItems = ({ onGoToProfile }) => {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -184,6 +402,9 @@ const BrowseItems = () => {
 
   return (
     <div>
+      {/* ✅ Profile Completion Banner */}
+      <ProfileCompletionBanner onGoToProfile={onGoToProfile} />
+
       <h1 style={{ fontSize: '2.5rem', color: '#333', marginBottom: '25px', fontWeight: '700' }}>
         Explore Gear
       </h1>
@@ -258,7 +479,7 @@ const BrowseItems = () => {
         {filtered.length > 0 ? filtered.map(item => (
           <div
             key={item._id}
-            onClick={() => navigate(`/item/${item._id}`)}
+            onClick={() => navigate(`/items/${item._id}`)}
             style={{
               background: 'white', borderRadius: '20px', overflow: 'hidden',
               boxShadow: '0 5px 15px rgba(0,0,0,0.08)', transition: 'transform 0.3s', cursor: 'pointer'
@@ -325,6 +546,8 @@ const BrowseItems = () => {
     </div>
   );
 };
+
+// ── MyBookings ───────────────────────────────────────────────────────────────
 
 const MyBookings = () => {
   const navigate = useNavigate();
@@ -415,7 +638,7 @@ const MyBookings = () => {
                     <p style={{ marginTop: '12px', fontSize: '0.82rem', color: GREEN, fontWeight: '600' }}>✓ Reviewed</p>
                   ) : (
                     <button
-                      onClick={() => navigate(`/item/${b.item?._id}`)}
+                      onClick={() => navigate(`/items/${b.item?._id}`)}
                       style={{
                         marginTop: '12px', width: '100%', padding: '9px',
                         background: GREEN_LIGHT, color: GREEN,
@@ -433,6 +656,8 @@ const MyBookings = () => {
     </div>
   );
 };
+
+// ── ImageUpload ──────────────────────────────────────────────────────────────
 
 const ImageUpload = ({ onFileSelect, preview }) => {
   const [dragOver, setDragOver] = useState(false);
@@ -477,6 +702,8 @@ const ImageUpload = ({ onFileSelect, preview }) => {
     </div>
   );
 };
+
+// ── MyListings ───────────────────────────────────────────────────────────────
 
 const MyListings = () => {
   const [items, setItems] = useState([]);
@@ -674,6 +901,8 @@ const MyListings = () => {
   );
 };
 
+// ── RentalBookings ───────────────────────────────────────────────────────────
+
 const RentalBookings = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -745,6 +974,8 @@ const RentalBookings = () => {
   );
 };
 
+// ── Earnings ─────────────────────────────────────────────────────────────────
+
 const Earnings = () => {
   const [data, setData] = useState({ total: 0, thisMonth: 0, pending: 0, transactions: [] });
   const [loading, setLoading] = useState(true);
@@ -771,9 +1002,9 @@ const Earnings = () => {
       <h1 style={{ fontSize: '2.2rem', color: '#333', marginBottom: '28px', fontWeight: '700' }}>Earnings & Reports</h1>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '30px' }}>
         {[
-          { label: 'Total Earnings', value: `₹${data.total}`, color: 'white', bg: GREEN },
-          { label: 'This Month',     value: `₹${data.thisMonth}`, color: GREEN, bg: 'white' },
-          { label: 'Pending',        value: `₹${data.pending}`, color: '#f57c00', bg: 'white' },
+          { label: 'Total Earnings', value: `₹${data.total}`,     color: 'white',    bg: GREEN },
+          { label: 'This Month',     value: `₹${data.thisMonth}`, color: GREEN,      bg: 'white' },
+          { label: 'Pending',        value: `₹${data.pending}`,   color: '#f57c00',  bg: 'white' },
         ].map(({ label, value, color, bg }) => (
           <div key={label} style={{ background: bg, padding: '28px', borderRadius: '16px', boxShadow: '0 5px 15px rgba(0,0,0,0.07)', border: bg === 'white' ? '1px solid #eee' : 'none' }}>
             <div style={{ fontSize: '0.88rem', color: bg === GREEN ? 'rgba(255,255,255,0.85)' : '#888', marginBottom: '10px' }}>{label}</div>
@@ -809,6 +1040,8 @@ const Earnings = () => {
     </div>
   );
 };
+
+// ── Payments ─────────────────────────────────────────────────────────────────
 
 const Payments = () => {
   const [payments, setPayments] = useState([]);
@@ -878,6 +1111,8 @@ const Payments = () => {
   );
 };
 
+// ── Profile ──────────────────────────────────────────────────────────────────
+
 const Profile = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -943,7 +1178,6 @@ const Profile = () => {
         <div style={{ padding: '12px 18px', borderRadius: '10px', marginBottom: '20px', background: msg.type === 'ok' ? '#e6fffa' : '#fee', color: msg.type === 'ok' ? GREEN : '#c33', fontWeight: '500' }}>{msg.text}</div>
       )}
 
-      {/* ── Profile card ── */}
       <div style={{ background: 'white', borderRadius: '20px', padding: '30px', boxShadow: '0 5px 20px rgba(0,0,0,0.07)', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '22px' }}>
         <div style={{
           width: '75px', height: '75px', borderRadius: '50%',
@@ -956,7 +1190,6 @@ const Profile = () => {
         <div>
           <h2 style={{ margin: 0, color: '#333', fontSize: '1.3rem' }}>{user?.name}</h2>
           <p style={{ margin: '4px 0 0', color: '#aaa', fontSize: '0.85rem' }}>{user?.email}</p>
-          {/* ✅ Change 1 — Admin badge */}
           <span style={{
             display: 'inline-block', marginTop: '6px', padding: '3px 12px',
             background: admin ? '#fee2e2' : GREEN_LIGHT,
@@ -968,7 +1201,6 @@ const Profile = () => {
         </div>
       </div>
 
-      {/* ── Personal info form ── */}
       <div style={{ background: 'white', borderRadius: '20px', padding: '30px', boxShadow: '0 5px 20px rgba(0,0,0,0.07)', marginBottom: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px' }}>
           <h3 style={{ margin: 0, color: '#333' }}>Personal Information</h3>
@@ -977,7 +1209,7 @@ const Profile = () => {
         <form onSubmit={handleUpdateProfile}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px', marginBottom: '18px' }}>
             {[
-              { label: 'Full Name', key: 'name', type: 'text' },
+              { label: 'Full Name', key: 'name',  type: 'text' },
               { label: 'Email',     key: 'email', type: 'email', disabled: true },
               { label: 'Phone',     key: 'phone', type: 'tel' },
             ].map(({ label, key, type, disabled }) => (
@@ -1005,7 +1237,6 @@ const Profile = () => {
         </form>
       </div>
 
-      {/* ✅ Change 2 — Password section: hidden for admin */}
       {admin ? (
         <div style={{ background: '#fff3e0', borderRadius: '20px', padding: '24px 30px', boxShadow: '0 5px 20px rgba(0,0,0,0.07)' }}>
           <h3 style={{ margin: '0 0 8px', color: '#f57c00' }}>Change Password</h3>
@@ -1034,6 +1265,8 @@ const Profile = () => {
     </div>
   );
 };
+
+// ── Shared UI ─────────────────────────────────────────────────────────────────
 
 const Loader = ({ text }) => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '55vh' }}>
@@ -1068,6 +1301,8 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+// ── UserDashboard ─────────────────────────────────────────────────────────────
+
 const UserDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('browse');
@@ -1076,14 +1311,14 @@ const UserDashboard = () => {
 
   const renderTab = () => {
     switch (activeTab) {
-      case 'browse':          return <BrowseItems />;
+      case 'browse':          return <BrowseItems onGoToProfile={() => setActiveTab('profile')} />;
       case 'my-bookings':     return <MyBookings />;
       case 'my-listings':     return <MyListings />;
       case 'rental-bookings': return <RentalBookings />;
       case 'earnings':        return <Earnings />;
       case 'payments':        return <Payments />;
       case 'profile':         return <Profile />;
-      default:                return <BrowseItems />;
+      default:                return <BrowseItems onGoToProfile={() => setActiveTab('profile')} />;
     }
   };
 
