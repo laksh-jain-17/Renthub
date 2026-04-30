@@ -242,9 +242,11 @@ const ProfileCompletionBanner = ({ onGoToProfile }) => {
 
 const NavBar = ({ activeTab, setActiveTab, onLogout }) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const cartCount = (() => { try { return JSON.parse(localStorage.getItem('renthub_cart') || '[]').length; } catch { return 0; } })();
   const tabs = [
     { key: 'browse',          label: 'Browse' },
     { key: 'wishlist',        label: '♡ Wishlist' },
+    { key: 'cart',            label: `🛒 Cart${cartCount > 0 ? ` (${cartCount})` : ''}` },
     { key: 'my-bookings',     label: 'My Bookings' },
     { key: 'my-listings',     label: 'My Listings' },
     { key: 'rental-bookings', label: 'Rental Requests' },
@@ -1342,6 +1344,236 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+// ── WishlistTab ───────────────────────────────────────────────────────────────
+
+const WishlistTab = () => {
+  const navigate = useNavigate();
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [removing, setRemoving] = useState(new Set());
+  const token = localStorage.getItem('token');
+
+  const getImageUrl = (images) => {
+    if (!images || images.length === 0) return null;
+    const img = images[0];
+    if (img.startsWith('http')) return img;
+    if (img.startsWith('/uploads')) return `${API}${img}`;
+    return `${API}/uploads/${img}`;
+  };
+
+  useEffect(() => {
+    if (!token) { navigate('/login'); return; }
+    fetch(`${API}/api/wishlist`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : [])
+      .then(setItems)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const removeFromWishlist = async (itemId) => {
+    setRemoving(prev => new Set([...prev, itemId]));
+    try {
+      const res = await fetch(`${API}/api/wishlist/${itemId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) setItems(prev => prev.filter(i => i._id !== itemId));
+    } catch {}
+    setRemoving(prev => { const n = new Set(prev); n.delete(itemId); return n; });
+  };
+
+  if (loading) return <Loader text="Loading wishlist..." />;
+
+  return (
+    <div>
+      <h1 style={{ fontSize: '2rem', color: '#333', marginBottom: '24px', fontWeight: '700' }}>
+        ♡ My Wishlist
+      </h1>
+      {items.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '80px 20px', background: 'white', borderRadius: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '16px' }}>♡</div>
+          <h3 style={{ color: '#555', marginBottom: '8px' }}>Your wishlist is empty</h3>
+          <p style={{ color: '#999', marginBottom: '24px' }}>Browse items and tap the heart to save them here</p>
+          <button onClick={() => navigate('/dashboard')} style={{ padding: '12px 32px', background: GREEN, color: 'white', border: 'none', borderRadius: '25px', cursor: 'pointer', fontWeight: '600' }}>
+            Browse Items
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '24px' }}>
+          {items.map(item => {
+            const imageUrl = getImageUrl(item.images);
+            return (
+              <div key={item._id} style={{ background: 'white', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,0.08)', transition: 'transform 0.2s' }}
+                onMouseOver={e => e.currentTarget.style.transform = 'translateY(-4px)'}
+                onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                <div style={{ height: '200px', background: imageUrl ? `url(${imageUrl}) center/cover no-repeat` : 'linear-gradient(135deg,#e0f7ef,#b2f0d4)', position: 'relative' }}>
+                  {item.isVerified && (
+                    <div style={{ position: 'absolute', top: '10px', left: '10px', background: 'rgba(255,255,255,0.95)', color: GREEN, padding: '4px 10px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '700' }}>✓ Verified</div>
+                  )}
+                  <button
+                    onClick={() => removeFromWishlist(item._id)}
+                    disabled={removing.has(item._id)}
+                    style={{ position: 'absolute', top: '10px', right: '10px', width: '34px', height: '34px', borderRadius: '50%', background: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', fontSize: '1.1rem', color: '#e05' }}
+                    title="Remove from wishlist"
+                  >
+                    {removing.has(item._id) ? '…' : '♥'}
+                  </button>
+                </div>
+                <div style={{ padding: '16px' }}>
+                  <span style={{ color: '#aaa', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: '700', letterSpacing: '0.5px' }}>{item.category}</span>
+                  <h3 style={{ fontSize: '1.1rem', color: '#222', margin: '6px 0 8px', lineHeight: '1.3' }}>{item.title}</h3>
+                  <p style={{ fontSize: '0.85rem', color: '#888', marginBottom: '14px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                    {item.description || 'No description'}
+                  </p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid #f0f0f0' }}>
+                    <span style={{ fontSize: '1.3rem', fontWeight: '700', color: GREEN }}>₹{item.pricePerDay}<span style={{ fontSize: '0.75rem', fontWeight: '400', color: '#aaa' }}>/day</span></span>
+                    <button onClick={() => navigate(`/items/${item._id}`)} style={{ padding: '8px 20px', background: GREEN, color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem' }}>
+                      View Details
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── CartTab ────────────────────────────────────────────────────────────────────
+
+const CartTab = () => {
+  const navigate = useNavigate();
+  const [cartItems, setCartItems] = useState([]);
+  const [bookedMap, setBookedMap] = useState({}); // itemId -> booked dates Set
+
+  const todayISO = new Date().toISOString().split('T')[0];
+
+  const getImageUrl = (images) => {
+    if (!images || images.length === 0) return null;
+    const img = images[0];
+    if (img.startsWith('http')) return img;
+    if (img.startsWith('/uploads')) return `${API}${img}`;
+    return `${API}/uploads/${img}`;
+  };
+
+  useEffect(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem('renthub_cart') || '[]');
+      setCartItems(raw);
+      // For each item, fetch its booked ranges to check if today is available
+      raw.forEach(async (entry) => {
+        try {
+          const res = await fetch(`${API}/api/bookings/item/${entry.item._id}`);
+          if (res.ok) {
+            const bookings = await res.json();
+            const bookedDates = new Set();
+            bookings.forEach(b => {
+              let cur = new Date(b.startDate);
+              const end = new Date(b.endDate);
+              while (cur <= end) {
+                bookedDates.add(cur.toISOString().split('T')[0]);
+                cur.setDate(cur.getDate() + 1);
+              }
+            });
+            setBookedMap(prev => ({ ...prev, [entry.item._id]: bookedDates }));
+          }
+        } catch {}
+      });
+    } catch {}
+  }, []);
+
+  const removeFromCart = (itemId) => {
+    const updated = cartItems.filter(e => e.item._id !== itemId);
+    setCartItems(updated);
+    localStorage.setItem('renthub_cart', JSON.stringify(updated));
+  };
+
+  const isAvailableToday = (itemId) => {
+    const dates = bookedMap[itemId];
+    if (!dates) return true; // assume available if not loaded yet
+    return !dates.has(todayISO);
+  };
+
+  const proceedToCheckout = (entry) => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowISO = tomorrow.toISOString().split('T')[0];
+    navigate('/checkout', {
+      state: {
+        item: entry.item,
+        startDate: todayISO,
+        endDate: tomorrowISO,
+        totalPrice: entry.item.pricePerDay,
+      }
+    });
+  };
+
+  return (
+    <div>
+      <h1 style={{ fontSize: '2rem', color: '#333', marginBottom: '8px', fontWeight: '700' }}>🛒 Cart</h1>
+      <p style={{ color: '#888', marginBottom: '24px', fontSize: '0.9rem' }}>Items saved for rental — availability shown for today ({todayISO})</p>
+
+      {cartItems.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '80px 20px', background: 'white', borderRadius: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🛒</div>
+          <h3 style={{ color: '#555', marginBottom: '8px' }}>Your cart is empty</h3>
+          <p style={{ color: '#999', marginBottom: '24px' }}>Add items to cart from product pages to rent them</p>
+          <button onClick={() => navigate('/dashboard')} style={{ padding: '12px 32px', background: GREEN, color: 'white', border: 'none', borderRadius: '25px', cursor: 'pointer', fontWeight: '600' }}>
+            Browse Items
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {cartItems.map(entry => {
+            const available = isAvailableToday(entry.item._id);
+            const imageUrl = getImageUrl(entry.item.images);
+            return (
+              <div key={entry.item._id} style={{ background: 'white', borderRadius: '16px', padding: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.07)', display: 'flex', gap: '16px', alignItems: 'center', opacity: available ? 1 : 0.75, flexWrap: 'wrap' }}>
+                <div style={{ width: '90px', height: '80px', borderRadius: '12px', background: imageUrl ? `url(${imageUrl}) center/cover no-repeat` : 'linear-gradient(135deg,#e0f7ef,#b2f0d4)', flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: '180px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                    <h3 style={{ fontSize: '1rem', color: '#222', margin: 0 }}>{entry.item.title}</h3>
+                    <span style={{
+                      padding: '3px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: '700',
+                      background: available ? '#e6fffa' : '#fff1f0',
+                      color: available ? '#0f9f6e' : '#e05',
+                      border: `1px solid ${available ? '#6ee7c7' : '#fca5a5'}`
+                    }}>
+                      {available ? '✓ Available Today' : '✗ Unavailable Today'}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '0.8rem', color: '#aaa', margin: '0 0 8px', textTransform: 'uppercase' }}>{entry.item.category}</p>
+                  <span style={{ fontSize: '1.1rem', fontWeight: '700', color: GREEN }}>₹{entry.item.pricePerDay}<span style={{ fontSize: '0.75rem', fontWeight: '400', color: '#aaa' }}>/day</span></span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <button onClick={() => navigate(`/items/${entry.item._id}`)} style={{ padding: '9px 18px', background: '#f4f4f4', color: '#444', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem' }}>
+                    View
+                  </button>
+                  {available ? (
+                    <button onClick={() => proceedToCheckout(entry)} style={{ padding: '9px 18px', background: GREEN, color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem' }}>
+                      Rent Now
+                    </button>
+                  ) : (
+                    <button disabled style={{ padding: '9px 18px', background: '#fde8e8', color: '#e05', border: 'none', borderRadius: '8px', cursor: 'not-allowed', fontWeight: '600', fontSize: '0.85rem' }}>
+                      Unavailable
+                    </button>
+                  )}
+                  <button onClick={() => removeFromCart(entry.item._id)} style={{ padding: '9px 12px', background: '#fff1f0', color: '#e05', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem' }} title="Remove">
+                    🗑
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ── UserDashboard ─────────────────────────────────────────────────────────────
 
 const UserDashboard = () => {
@@ -1353,6 +1585,8 @@ const UserDashboard = () => {
   const renderTab = () => {
     switch (activeTab) {
       case 'browse':          return <BrowseItems onGoToProfile={() => setActiveTab('profile')} />;
+      case 'wishlist':        return <WishlistTab />;
+      case 'cart':            return <CartTab />;
       case 'my-bookings':     return <MyBookings />;
       case 'my-listings':     return <MyListings />;
       case 'rental-bookings': return <RentalBookings />;
