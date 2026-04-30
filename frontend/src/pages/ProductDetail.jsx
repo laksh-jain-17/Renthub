@@ -143,6 +143,9 @@ const ProductDetail = () => {
   const [selectedStart, setSelectedStart] = useState(null);
   const [selectedEnd, setSelectedEnd]     = useState(null);
   const [bookingError, setBookingError]   = useState('');
+  const [cartAdded, setCartAdded]         = useState(false);
+  const [inWishlist, setInWishlist]       = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
 
   // ✅ Review state
   const [reviews, setReviews]           = useState([]);
@@ -153,6 +156,49 @@ const ProductDetail = () => {
   const [reviewMsg, setReviewMsg]       = useState({ type: '', text: '' });
 
   useEffect(() => { fetchItemDetails(); fetchReviews(); checkReviewEligibility(); }, [id]);
+
+  // Check if already in cart
+  useEffect(() => {
+    try {
+      const cart = JSON.parse(localStorage.getItem('renthub_cart') || '[]');
+      setCartAdded(cart.some(e => e.item._id === id));
+    } catch {}
+  }, [id]);
+
+  // Check if in wishlist
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    fetch(`${API_BASE_URL}/api/wishlist`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : [])
+      .then(items => setInWishlist(items.some(i => i._id === id)))
+      .catch(() => {});
+  }, [id]);
+
+  const handleToggleWishlist = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) { alert('Please login to save to wishlist'); navigate('/login'); return; }
+    setWishlistLoading(true);
+    try {
+      const method = inWishlist ? 'DELETE' : 'POST';
+      const res = await fetch(`${API_BASE_URL}/api/wishlist/${id}`, { method, headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) setInWishlist(!inWishlist);
+    } catch {}
+    setWishlistLoading(false);
+  };
+
+  const handleAddToCart = () => {
+    const token = localStorage.getItem('token');
+    if (!token) { alert('Please login to add to cart'); navigate('/login'); return; }
+    try {
+      const cart = JSON.parse(localStorage.getItem('renthub_cart') || '[]');
+      if (!cart.some(e => e.item._id === item._id)) {
+        cart.push({ item, addedAt: new Date().toISOString() });
+        localStorage.setItem('renthub_cart', JSON.stringify(cart));
+      }
+      setCartAdded(true);
+    } catch {}
+  };
 
   const fetchItemDetails = async () => {
     try {
@@ -294,7 +340,12 @@ const ProductDetail = () => {
           {/* RIGHT */}
           <div>
             <div style={{ marginBottom:24 }}>
-              <span style={{ display:'inline-block', padding:'4px 14px', background:'#f0f0ee', borderRadius:20, fontSize:'0.75rem', fontWeight:700, color:'#888', textTransform:'uppercase', letterSpacing:'0.6px', marginBottom:12 }}>{item.category}</span>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+                <span style={{ display:'inline-block', padding:'4px 14px', background:'#f0f0ee', borderRadius:20, fontSize:'0.75rem', fontWeight:700, color:'#888', textTransform:'uppercase', letterSpacing:'0.6px' }}>{item.category}</span>
+                <button onClick={handleToggleWishlist} disabled={wishlistLoading} style={{ width:40, height:40, borderRadius:'50%', border:`2px solid ${inWishlist ? '#e05' : '#ddd'}`, background: inWishlist ? '#fff1f0' : '#fff', cursor:'pointer', fontSize:'1.2rem', display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.2s' }} title={inWishlist ? 'Remove from wishlist' : 'Save to wishlist'}>
+                  {wishlistLoading ? '…' : inWishlist ? '♥' : '♡'}
+                </button>
+              </div>
               <h1 style={{ fontFamily:"'DM Serif Display',serif", fontSize:'2.4rem', color:'#111', lineHeight:1.15, marginBottom:10 }}>{item.title}</h1>
               <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                 <StarRating rating={item.rating || 0} size="1.1rem" />
@@ -328,6 +379,11 @@ const ProductDetail = () => {
             )}
 
             {bookingError && <div style={{ background:'#fef2f2', border:'1px solid #fca5a5', color:'#b91c1c', padding:'12px 16px', borderRadius:10, fontSize:'0.85rem', marginBottom:16 }}>{bookingError}</div>}
+
+            {/* Add to Cart button */}
+            <button onClick={handleAddToCart} disabled={cartAdded} style={{ width:'100%', padding:'14px', background: cartAdded ? '#e6fffa' : '#fff', color: cartAdded ? '#0f9f6e' : '#32be8f', border:'2px solid #32be8f', borderRadius:12, fontSize:'1rem', fontWeight:700, cursor: cartAdded ? 'default' : 'pointer', marginBottom:10, transition:'all 0.2s' }}>
+              {cartAdded ? '✓ Added to Cart' : '🛒 Add to Cart'}
+            </button>
 
             {/* ✅ UPDATED: Button now navigates to Checkout */}
             <button className="btn-book" onClick={handleCheckout} disabled={!ready} style={{ width:'100%', padding:'17px', background:ready?'#32be8f':'#d1d5db', color:'#fff', border:'none', borderRadius:12, fontSize:'1.05rem', fontWeight:700, cursor:ready?'pointer':'not-allowed' }}>
