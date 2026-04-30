@@ -244,6 +244,7 @@ const NavBar = ({ activeTab, setActiveTab, onLogout }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const tabs = [
     { key: 'browse',          label: 'Browse' },
+    { key: 'wishlist',        label: '♡ Wishlist' },
     { key: 'my-bookings',     label: 'My Bookings' },
     { key: 'my-listings',     label: 'My Listings' },
     { key: 'rental-bookings', label: 'Rental Requests' },
@@ -368,6 +369,11 @@ const BrowseItems = ({ onGoToProfile }) => {
   const [sortBy, setSortBy] = useState('newest');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [wishlist, setWishlist] = useState(new Set());
+  const [wishlistLoading, setWishlistLoading] = useState(new Set());
+
+  const token = localStorage.getItem('token');
+  const isLoggedIn = !!token;
 
   useEffect(() => {
     fetch(`${API}/api/items/all`)
@@ -376,6 +382,41 @@ const BrowseItems = ({ onGoToProfile }) => {
       .catch(() => setError('Failed to load items'))
       .finally(() => setLoading(false));
   }, []);
+
+  // Load wishlist if logged in
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    fetch(`${API}/api/wishlist`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : [])
+      .then(items => setWishlist(new Set(items.map(i => i._id))))
+      .catch(() => {});
+  }, [isLoggedIn]);
+
+  const toggleWishlist = async (e, itemId) => {
+    e.stopPropagation();
+    if (!isLoggedIn) { navigate('/login'); return; }
+    if (wishlistLoading.has(itemId)) return;
+
+    setWishlistLoading(prev => new Set([...prev, itemId]));
+    const inWishlist = wishlist.has(itemId);
+    const method = inWishlist ? 'DELETE' : 'POST';
+
+    try {
+      const res = await fetch(`${API}/api/wishlist/${itemId}`, {
+        method,
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setWishlist(prev => {
+          const next = new Set(prev);
+          inWishlist ? next.delete(itemId) : next.add(itemId);
+          return next;
+        });
+      }
+    } catch {} finally {
+      setWishlistLoading(prev => { const n = new Set(prev); n.delete(itemId); return n; });
+    }
+  };
 
   const categories = ['All', 'Camera', 'Gaming', 'Camping', 'Gym'];
 
