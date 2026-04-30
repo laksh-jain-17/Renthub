@@ -43,12 +43,13 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', uptime: process.uptime() });
 });
 
-const authRoutes    = require('./routes/authRoutes');
-const userRoutes    = require('./routes/userRoutes');
-const itemRoutes    = require('./routes/itemRoutes');
-const bookingRoutes = require('./routes/bookingRoutes');
-const adminRoutes   = require('./routes/adminRoutes');
-const reviewRoutes  = require('./routes/reviewRoutes');
+const authRoutes     = require('./routes/authRoutes');
+const userRoutes     = require('./routes/userRoutes');
+const itemRoutes     = require('./routes/itemRoutes');
+const bookingRoutes  = require('./routes/bookingRoutes');
+const adminRoutes    = require('./routes/adminRoutes');
+const reviewRoutes   = require('./routes/reviewRoutes');
+const wishlistRoutes = require('./routes/wishlistRoutes');
 
 app.use('/api/auth',     authRoutes);
 app.use('/api/users',    userRoutes);
@@ -56,6 +57,7 @@ app.use('/api/items',    itemRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/admin',    adminRoutes);
 app.use('/api/reviews',  reviewRoutes);
+app.use('/api/wishlist', wishlistRoutes);
 
 const PORT = process.env.PORT || 10000;
 
