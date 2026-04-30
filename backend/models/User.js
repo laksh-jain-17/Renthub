@@ -19,6 +19,9 @@ const userSchema = new mongoose.Schema({
   emailVerified:   { type: Boolean, default: false },
   verifyOtp:       { type: String,  default: null },
   verifyOtpExpiry: { type: Date,    default: null },
+
+  // Wishlist: array of item IDs the user has saved
+  wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Item' }],
 });
 
 module.exports = mongoose.model('User', userSchema);
