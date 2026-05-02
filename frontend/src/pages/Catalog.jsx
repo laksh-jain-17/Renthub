@@ -148,7 +148,7 @@ const Catalog = () => {
                       display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', minHeight: '40px'
                     }}>{item.description || 'No description available'}</p>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '15px', borderTop: '1px solid #f0f0f0' }}>
+                    <!--div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '15px', borderTop: '1px solid #f0f0f0' }}>
                       <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#32be8f' }}>
                         ₹{item.pricePerDay}<span style={{ fontSize: '0.8rem', fontWeight: '400', color: '#999' }}>/day</span>
                       </p>
@@ -163,7 +163,7 @@ const Catalog = () => {
                         Safety Tutorial Available
                       </div>
                     )}
-                  </div>
+                  </div-->
                 </div>
               </Link>
             );
