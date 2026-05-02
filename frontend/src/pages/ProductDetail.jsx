@@ -300,7 +300,7 @@ const ProductDetail = () => {
   if (error || !item) return (
     <div style={{ height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column' }}>
       <h2>{error || 'Item not found'}</h2>
-      <Link to="/catalog" style={{ marginTop:20, color:'#32be8f', textDecoration:'none' }}>← Back to Catalog</Link>
+      <Link to="/dashboard" state={{ tab: 'browse' }} style={{ marginTop:20, color:'#32be8f', textDecoration:'none' }}>← Back to Browse</Link>
     </div>
   );
 
@@ -312,7 +312,7 @@ const ProductDetail = () => {
       <style>{`*,*::before,*::after{box-sizing:border-box;margin:0}body{font-family:'DM Sans',sans-serif}.btn-book{transition:background 0.2s,transform 0.1s}.btn-book:hover:not(:disabled){background:#249c72!important;transform:translateY(-1px)}.btn-book:active:not(:disabled){transform:translateY(0)}@media(max-width:900px){.pd-grid{grid-template-columns:1fr!important}}`}</style>
 
       <div style={{ minHeight:'100vh', background:'#f5f5f3', padding:'100px 5% 60px', fontFamily:"'DM Sans',sans-serif" }}>
-        <Link to="/catalog" style={{ display:'inline-flex', alignItems:'center', gap:6, marginBottom:32, color:'#555', textDecoration:'none', fontSize:'0.9rem', fontWeight:500, background:'#fff', padding:'8px 16px', borderRadius:40, boxShadow:'0 1px 4px rgba(0,0,0,0.08)' }}>← Back to Catalog</Link>
+        <Link to="/dashboard" state={{ tab: 'browse' }} style={{ display:'inline-flex', alignItems:'center', gap:6, marginBottom:32, color:'#555', textDecoration:'none', fontSize:'0.9rem', fontWeight:500, background:'#fff', padding:'8px 16px', borderRadius:40, boxShadow:'0 1px 4px rgba(0,0,0,0.08)' }}>← Back to Browse</Link>
 
         <div className="pd-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:32, maxWidth:1200, margin:'0 auto' }}>
           {/* LEFT */}
