@@ -1,52 +1,30 @@
 const mongoose = require('mongoose');
 
 const ticketSchema = new mongoose.Schema({
-  ticketNumber: {
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
+  subject: {
     type: String,
     required: true,
-    unique: true
+    trim: true,
   },
-  title: {
+  message: {
     type: String,
-    required: true
+    required: true,
   },
-  description: {
+  category: {
     type: String,
-    required: true
-  },
-  priority: {
-    type: String,
-    enum: ['low', 'medium', 'high', 'urgent'],
-    default: 'medium'
+    enum: ['booking', 'payment', 'item', 'account', 'other'],
+    default: 'other',
   },
   status: {
     type: String,
     enum: ['open', 'in-progress', 'resolved', 'closed'],
-    default: 'open'
+    default: 'open',
   },
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    default: null
-  },
-  assignedTo: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    default: null
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
-  }
-});
-
-ticketSchema.pre('save', function(next) {
-  this.updatedAt = Date.now();
-  next();
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model('Ticket', ticketSchema);
