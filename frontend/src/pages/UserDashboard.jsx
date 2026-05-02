@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const GREEN = '#32be8f';
 const GREEN_DARK = '#249c72';
@@ -252,6 +252,7 @@ const NavBar = ({ activeTab, setActiveTab, onLogout }) => {
     { key: 'rental-bookings', label: 'Rental Requests' },
     { key: 'earnings',        label: 'Earnings' },
     { key: 'payments',        label: 'Payments' },
+    { key: 'support',         label: '🎫 Support' },
   ];
 
   const handleTab = (key) => { setActiveTab(key); setMenuOpen(false); };
@@ -1344,6 +1345,284 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+// ── SupportTab ────────────────────────────────────────────────────────────────
+
+const CATEGORIES = ['general','booking','payment','listing','account','dispute','other'];
+const PRIORITIES = ['low','medium','high','urgent'];
+
+const priorityColors = {
+  low:    { color: '#388e3c', bg: '#e8f5e9' },
+  medium: { color: '#f57c00', bg: '#fff3e0' },
+  high:   { color: '#d32f2f', bg: '#ffebee' },
+  urgent: { color: '#fff',    bg: '#c62828' },
+};
+const statusColors = {
+  open:        { color: '#1565c0', bg: '#e3f2fd' },
+  'in-progress':{ color: '#f57c00', bg: '#fff3e0' },
+  resolved:    { color: '#32be8f', bg: '#e6fffa' },
+  closed:      { color: '#666',    bg: '#f0f0f0' },
+};
+
+const SupportTab = () => {
+  const token = localStorage.getItem('token');
+  const [tickets,      setTickets]      = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [showForm,     setShowForm]     = useState(false);
+  const [activeTicket, setActiveTicket] = useState(null);
+  const [replyText,    setReplyText]    = useState('');
+  const [sending,      setSending]      = useState(false);
+  const [form, setForm] = useState({ title: '', description: '', category: 'general', priority: 'medium' });
+
+  const authHeaders = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+
+  const fetchTickets = async () => {
+    try {
+      const r = await fetch(`${API}/api/tickets`, { headers: authHeaders });
+      if (r.ok) setTickets(await r.json());
+    } finally { setLoading(false); }
+  };
+
+  useEffect(() => { fetchTickets(); }, []);
+
+  // keep activeTicket in sync after refetch
+  useEffect(() => {
+    if (activeTicket) {
+      const updated = tickets.find(t => t._id === activeTicket._id);
+      if (updated) setActiveTicket(updated);
+    }
+  }, [tickets]);
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    const r = await fetch(`${API}/api/tickets`, {
+      method: 'POST', headers: authHeaders, body: JSON.stringify(form),
+    });
+    if (r.ok) {
+      const t = await r.json();
+      setTickets(prev => [t, ...prev]);
+      setShowForm(false);
+      setForm({ title: '', description: '', category: 'general', priority: 'medium' });
+    }
+  };
+
+  const handleReply = async () => {
+    if (!replyText.trim() || !activeTicket) return;
+    setSending(true);
+    const r = await fetch(`${API}/api/tickets/${activeTicket._id}/messages`, {
+      method: 'POST', headers: authHeaders, body: JSON.stringify({ text: replyText.trim() }),
+    });
+    if (r.ok) {
+      const updated = await r.json();
+      setTickets(prev => prev.map(t => t._id === updated._id ? updated : t));
+      setActiveTicket(updated);
+      setReplyText('');
+    }
+    setSending(false);
+  };
+
+  const inputSt = { width: '100%', padding: '10px 14px', border: '1px solid #e0e0e0', borderRadius: 10, fontSize: '0.95rem', boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit' };
+  const labelSt = { display: 'block', marginBottom: 6, fontWeight: 600, fontSize: '0.85rem', color: '#555' };
+
+  if (loading) return <div style={{ padding: 60, textAlign: 'center', color: '#999' }}>Loading your tickets…</div>;
+
+  // ── Ticket thread view ──────────────────────────────────────────────────────
+  if (activeTicket) {
+    const isClosedOrResolved = activeTicket.status === 'resolved' || activeTicket.status === 'closed';
+    return (
+      <div style={{ maxWidth: 760, margin: '0 auto' }}>
+        <button onClick={() => setActiveTicket(null)}
+          style={{ background: 'none', border: 'none', color: GREEN, cursor: 'pointer', fontWeight: 700, fontSize: '0.95rem', marginBottom: 20, padding: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+          ← Back to Tickets
+        </button>
+
+        {/* Ticket header */}
+        <div style={{ background: '#fff', borderRadius: 16, padding: '24px 28px', marginBottom: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ color: '#aaa', fontSize: '0.78rem', marginBottom: 6 }}>#{activeTicket.ticketNumber}</p>
+              <h2 style={{ fontSize: '1.3rem', fontWeight: 700, margin: '0 0 8px', color: '#1a1a1a' }}>{activeTicket.title}</h2>
+              <p style={{ color: '#666', fontSize: '0.9rem', margin: 0 }}>{activeTicket.description}</p>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+              <span style={{ padding: '5px 12px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700, ...priorityColors[activeTicket.priority] }}>
+                {activeTicket.priority.toUpperCase()}
+              </span>
+              <span style={{ padding: '5px 12px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700, ...(statusColors[activeTicket.status] || statusColors.open) }}>
+                {activeTicket.status.replace('-', ' ').toUpperCase()}
+              </span>
+            </div>
+          </div>
+          <p style={{ color: '#bbb', fontSize: '0.78rem', marginTop: 14, marginBottom: 0 }}>
+            {activeTicket.category.charAt(0).toUpperCase() + activeTicket.category.slice(1)} · Opened {new Date(activeTicket.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+          </p>
+        </div>
+
+        {/* Message thread */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+          {activeTicket.messages.length === 0 && (
+            <div style={{ background: '#fff', borderRadius: 12, padding: '28px', textAlign: 'center', color: '#bbb', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+              No replies yet. Admin will respond soon.
+            </div>
+          )}
+          {activeTicket.messages.map((msg, i) => {
+            const isUser = msg.sender === 'user';
+            return (
+              <div key={i} style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start' }}>
+                <div style={{
+                  maxWidth: '75%', padding: '12px 16px', borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                  background: isUser ? GREEN : '#fff',
+                  color: isUser ? '#fff' : '#333',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.07)',
+                  fontSize: '0.9rem', lineHeight: 1.5,
+                }}>
+                  <p style={{ margin: '0 0 4px', fontWeight: 600, fontSize: '0.75rem', opacity: 0.75 }}>
+                    {isUser ? 'You' : '🛡️ RentHub Support'}
+                  </p>
+                  <p style={{ margin: 0 }}>{msg.text}</p>
+                  <p style={{ margin: '6px 0 0', fontSize: '0.72rem', opacity: 0.6, textAlign: 'right' }}>
+                    {new Date(msg.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Reply box */}
+        {!isClosedOrResolved ? (
+          <div style={{ background: '#fff', borderRadius: 14, padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+            <textarea
+              value={replyText}
+              onChange={e => setReplyText(e.target.value)}
+              placeholder="Write your reply…"
+              rows={3}
+              style={{ ...inputSt, resize: 'vertical', marginBottom: 12 }}
+            />
+            <button onClick={handleReply} disabled={sending || !replyText.trim()}
+              style={{ padding: '11px 28px', background: sending || !replyText.trim() ? '#ccc' : GREEN, color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, cursor: sending || !replyText.trim() ? 'not-allowed' : 'pointer', fontSize: '0.95rem' }}>
+              {sending ? 'Sending…' : 'Send Reply'}
+            </button>
+          </div>
+        ) : (
+          <div style={{ background: GREEN_LIGHT, border: `1px solid ${GREEN}`, borderRadius: 12, padding: '16px 20px', color: GREEN_DARK, fontWeight: 600, fontSize: '0.9rem' }}>
+            ✓ This ticket has been {activeTicket.status}. Open a new ticket if you need further help.
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── Ticket list view ────────────────────────────────────────────────────────
+  return (
+    <div style={{ maxWidth: 760, margin: '0 auto' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 700 }}>Support Tickets</h2>
+          <p style={{ margin: '4px 0 0', color: '#888', fontSize: '0.88rem' }}>Raise an issue and we'll get back to you</p>
+        </div>
+        <button onClick={() => setShowForm(f => !f)}
+          style={{ padding: '11px 22px', background: showForm ? '#f0f0f0' : GREEN, color: showForm ? '#555' : '#fff', border: 'none', borderRadius: 12, fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem' }}>
+          {showForm ? 'Cancel' : '+ New Ticket'}
+        </button>
+      </div>
+
+      {/* New ticket form */}
+      {showForm && (
+        <div style={{ background: '#fff', borderRadius: 16, padding: '28px', marginBottom: 28, boxShadow: '0 4px 20px rgba(50,190,143,0.1)', border: `1px solid ${GREEN}` }}>
+          <h3 style={{ margin: '0 0 20px', fontSize: '1.1rem', fontWeight: 700 }}>New Support Ticket</h3>
+          <form onSubmit={handleCreate}>
+            <div style={{ marginBottom: 16 }}>
+              <label style={labelSt}>Title *</label>
+              <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
+                placeholder="Brief summary of your issue" style={inputSt} required />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={labelSt}>Description *</label>
+              <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
+                placeholder="Describe your issue in detail…" rows={4}
+                style={{ ...inputSt, resize: 'vertical' }} required />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+              <div>
+                <label style={labelSt}>Category</label>
+                <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} style={inputSt}>
+                  {CATEGORIES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={labelSt}>Priority</label>
+                <select value={form.priority} onChange={e => setForm(p => ({ ...p, priority: e.target.value }))} style={inputSt}>
+                  {PRIORITIES.map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
+                </select>
+              </div>
+            </div>
+            <button type="submit"
+              style={{ padding: '12px 32px', background: GREEN, color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, cursor: 'pointer', fontSize: '0.95rem' }}>
+              Submit Ticket
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* Tickets list */}
+      {tickets.length === 0 ? (
+        <div style={{ background: '#fff', borderRadius: 16, padding: '60px 40px', textAlign: 'center', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '3rem', marginBottom: 12 }}>🎫</div>
+          <p style={{ color: '#999', margin: 0 }}>No support tickets yet. We're here if you need help!</p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {tickets.map(t => {
+            const sc = statusColors[t.status] || statusColors.open;
+            const pc = priorityColors[t.priority];
+            const lastMsg = t.messages[t.messages.length - 1];
+            const hasAdminReply = t.messages.some(m => m.sender === 'admin');
+            return (
+              <div key={t._id} onClick={() => setActiveTicket(t)}
+                style={{ background: '#fff', borderRadius: 14, padding: '20px 24px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', cursor: 'pointer', borderLeft: `4px solid ${sc.color}`, transition: 'box-shadow 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.1)'}
+                onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.05)'}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 700, fontSize: '1rem', color: '#1a1a1a' }}>{t.title}</span>
+                      {hasAdminReply && !['resolved','closed'].includes(t.status) && (
+                        <span style={{ padding: '2px 8px', background: '#fff3cd', color: '#856404', borderRadius: 20, fontSize: '0.7rem', fontWeight: 700 }}>
+                          Admin replied
+                        </span>
+                      )}
+                    </div>
+                    <p style={{ color: '#888', fontSize: '0.85rem', margin: '0 0 10px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {lastMsg ? lastMsg.text : t.description}
+                    </p>
+                    <div style={{ display: 'flex', gap: 10, fontSize: '0.75rem', color: '#bbb', flexWrap: 'wrap' }}>
+                      <span>#{t.ticketNumber}</span>
+                      <span>·</span>
+                      <span>{t.category.charAt(0).toUpperCase() + t.category.slice(1)}</span>
+                      <span>·</span>
+                      <span>{new Date(t.updatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                      <span>·</span>
+                      <span>{t.messages.length} message{t.messages.length !== 1 ? 's' : ''}</span>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end', flexShrink: 0 }}>
+                    <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700, ...sc }}>
+                      {t.status.replace('-', ' ').toUpperCase()}
+                    </span>
+                    <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700, ...pc }}>
+                      {t.priority.toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ── WishlistTab ───────────────────────────────────────────────────────────────
 
 const WishlistTab = () => {
@@ -1572,7 +1851,8 @@ const CartTab = () => {
 
 const UserDashboard = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('browse');
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(location.state?.tab || 'browse');
 
   const handleLogout = () => { localStorage.clear(); navigate('/login'); };
 
@@ -1586,6 +1866,7 @@ const UserDashboard = () => {
       case 'rental-bookings': return <RentalBookings />;
       case 'earnings':        return <Earnings />;
       case 'payments':        return <Payments />;
+      case 'support':         return <SupportTab />;
       case 'profile':         return <Profile />;
       default:                return <BrowseItems onGoToProfile={() => setActiveTab('profile')} />;
     }
