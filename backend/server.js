@@ -47,7 +47,7 @@ const bookingRoutes  = require('./routes/bookingRoutes');
 const adminRoutes    = require('./routes/adminRoutes');
 const reviewRoutes   = require('./routes/reviewRoutes');
 const wishlistRoutes = require('./routes/wishlistRoutes');
-const ticketRoutes   = require('./routes/ticketRoutes'); // ✅ THIS was missing
+const ticketRoutes   = require('./routes/ticketsRoutes'); // ✅ THIS was missing
 
 app.use('/api/auth',     authRoutes);
 app.use('/api/users',    userRoutes);
