@@ -35,14 +35,11 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-// ❌ REMOVED: app.use('/uploads', express.static('uploads'));
-// Images are now stored on Cloudinary — never on local disk.
-// Render's filesystem is ephemeral; local uploads vanish on every deploy.
-
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', uptime: process.uptime() });
 });
 
+// ── Routes ─────────────────────────────────────────────────────────────────────
 const authRoutes     = require('./routes/authRoutes');
 const userRoutes     = require('./routes/userRoutes');
 const itemRoutes     = require('./routes/itemRoutes');
@@ -50,7 +47,7 @@ const bookingRoutes  = require('./routes/bookingRoutes');
 const adminRoutes    = require('./routes/adminRoutes');
 const reviewRoutes   = require('./routes/reviewRoutes');
 const wishlistRoutes = require('./routes/wishlistRoutes');
-
+const ticketRoutes   = require('./routes/ticketRoutes'); // ✅ THIS was missing
 
 app.use('/api/auth',     authRoutes);
 app.use('/api/users',    userRoutes);
@@ -59,7 +56,7 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/admin',    adminRoutes);
 app.use('/api/reviews',  reviewRoutes);
 app.use('/api/wishlist', wishlistRoutes);
-app.use('/api/tickets',  ticketRoutes);
+app.use('/api/tickets',  ticketRoutes); // ✅ now works
 
 const PORT = process.env.PORT || 10000;
 
@@ -76,7 +73,6 @@ const seedAdmin = async () => {
   }
 
   const existing = await User.findOne({ email: adminEmail });
-
   if (!existing) {
     const hashed = await bcrypt.hash(adminPass, 10);
     await User.create({
