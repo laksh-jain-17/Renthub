@@ -148,22 +148,8 @@ const Catalog = () => {
                       display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', minHeight: '40px'
                     }}>{item.description || 'No description available'}</p>
 
-                    <!--div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '15px', borderTop: '1px solid #f0f0f0' }}>
-                      <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#32be8f' }}>
-                        ₹{item.pricePerDay}<span style={{ fontSize: '0.8rem', fontWeight: '400', color: '#999' }}>/day</span>
-                      </p>
-                      <button style={{
-                        padding: '10px 25px', background: '#32be8f', color: 'white',
-                        border: 'none', borderRadius: '8px', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer'
-                      }}>View Details</button>
-                    </div>
-
-                    {item.isVerified && (
-                      <div style={{ marginTop: '15px', padding: '10px', background: '#e6fffa', borderRadius: '8px', fontSize: '0.8rem', color: '#32be8f', textAlign: 'center' }}>
-                        Safety Tutorial Available
-                      </div>
-                    )}
-                  </div-->
+                    
+                  </div>
                 </div>
               </Link>
             );
