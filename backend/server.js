@@ -51,6 +51,7 @@ const adminRoutes    = require('./routes/adminRoutes');
 const reviewRoutes   = require('./routes/reviewRoutes');
 const wishlistRoutes = require('./routes/wishlistRoutes');
 
+
 app.use('/api/auth',     authRoutes);
 app.use('/api/users',    userRoutes);
 app.use('/api/items',    itemRoutes);
@@ -58,6 +59,7 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/admin',    adminRoutes);
 app.use('/api/reviews',  reviewRoutes);
 app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/tickets',  ticketRoutes);
 
 const PORT = process.env.PORT || 10000;
 
