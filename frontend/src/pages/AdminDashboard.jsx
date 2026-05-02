@@ -440,137 +440,251 @@ const PaymentMonitoring = () => {
 // SUPPORT TICKETS
 // ══════════════════════════════════════════════════════════════════════════════
 
-const SupportTickets = () => {
-  const [tickets,   setTickets]   = useState([]);
-  const [showForm,  setShowForm]  = useState(false);
-  const [newTicket, setNewTicket] = useState({ title:'', description:'', priority:'medium' });
-  const [loading,   setLoading]   = useState(true);
+const ADMIN_PRIORITY_COLORS = {
+  low:    { color:'#388e3c', bg:'#e8f5e9' },
+  medium: { color:'#f57c00', bg:'#fff3e0' },
+  high:   { color:'#d32f2f', bg:'#ffebee' },
+  urgent: { color:'#fff',    bg:'#c62828' },
+};
+const ADMIN_STATUS_COLORS = {
+  open:           { color:'#1565c0', bg:'#e3f2fd' },
+  'in-progress':  { color:'#f57c00', bg:'#fff3e0' },
+  resolved:       { color:'#32be8f', bg:'#e6fffa' },
+  closed:         { color:'#666',    bg:'#f0f0f0' },
+};
 
-  useEffect(() => { fetchTickets(); }, []);
+const SupportTickets = () => {
+  const [tickets,      setTickets]      = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [activeTicket, setActiveTicket] = useState(null);
+  const [replyText,    setReplyText]    = useState('');
+  const [sending,      setSending]      = useState(false);
+  const [filter,       setFilter]       = useState('all');
 
   const fetchTickets = () =>
     authFetch(`${API_BASE_URL}/api/admin/tickets`)
       .then(r => r.ok ? r.json() : [])
-      .then(setTickets)
-      .catch(() => {})
+      .then(data => { setTickets(data); return data; })
+      .catch(() => [])
       .finally(() => setLoading(false));
 
-  const handleCreate = async (e) => {
-    e.preventDefault();
-    const r = await authFetch(`${API_BASE_URL}/api/admin/tickets`, { method:'POST', body: JSON.stringify(newTicket) });
+  useEffect(() => { fetchTickets(); }, []);
+
+  // keep activeTicket in sync
+  useEffect(() => {
+    if (activeTicket) {
+      const updated = tickets.find(t => t._id === activeTicket._id);
+      if (updated) setActiveTicket(updated);
+    }
+  }, [tickets]);
+
+  const handleStatus = async (id, status) => {
+    const r = await authFetch(`${API_BASE_URL}/api/admin/tickets/${id}/status`, { method:'PUT', body:JSON.stringify({ status }) });
     if (r.ok) {
-      const t = await r.json();
-      setTickets(prev => [t, ...prev]);
-      setShowForm(false);
-      setNewTicket({ title:'', description:'', priority:'medium' });
+      const updated = await r.json();
+      setTickets(prev => prev.map(t => t._id === updated._id ? updated : t));
     }
   };
 
-  const handleStatus = async (id, status) => {
-    const r = await authFetch(`${API_BASE_URL}/api/admin/tickets/${id}/status`, { method:'PUT', body: JSON.stringify({ status }) });
-    if (r.ok) fetchTickets();
+  const handleReply = async () => {
+    if (!replyText.trim() || !activeTicket) return;
+    setSending(true);
+    const r = await authFetch(`${API_BASE_URL}/api/admin/tickets/${activeTicket._id}/messages`, {
+      method:'POST', body:JSON.stringify({ text: replyText.trim() }),
+    });
+    if (r.ok) {
+      const updated = await r.json();
+      setTickets(prev => prev.map(t => t._id === updated._id ? updated : t));
+      setActiveTicket(updated);
+      setReplyText('');
+    }
+    setSending(false);
   };
 
   if (loading) return <Spinner text="Loading tickets…" />;
 
-  const priorityStyle = (p) => {
-    const map = { urgent:['#c62828','#ffebee'], high:['#f57c00','#fff3e0'], medium:['#f9a825','#fff9e6'] };
-    return badge(...(map[p] || ['#666','#f0f0f0']));
-  };
-  const statusTicketStyle = (s) => {
-    const map = { resolved:['#32be8f','#e6fffa'], 'in-progress':['#f57c00','#fff3e0'] };
-    return badge(...(map[s] || ['#666','#f0f0f0']));
-  };
+  const inputSt = { width:'100%', padding:'10px 14px', border:'1px solid #e0e0e0', borderRadius:10, fontSize:'0.95rem', boxSizing:'border-box', outline:'none', fontFamily:'inherit' };
+
+  // ── Thread view ──────────────────────────────────────────────────────────────
+  if (activeTicket) {
+    const sc = ADMIN_STATUS_COLORS[activeTicket.status] || ADMIN_STATUS_COLORS.open;
+    const pc = ADMIN_PRIORITY_COLORS[activeTicket.priority];
+    const isResolved = activeTicket.status === 'resolved' || activeTicket.status === 'closed';
+    return (
+      <div>
+        <button onClick={() => setActiveTicket(null)}
+          style={{ background:'none', border:'none', color:'#667eea', cursor:'pointer', fontWeight:700, fontSize:'0.95rem', marginBottom:20, padding:0, display:'flex', alignItems:'center', gap:6 }}>
+          ← Back to Tickets
+        </button>
+
+        {/* Header */}
+        <div style={{ ...card, padding:'24px 28px', marginBottom:20 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:12 }}>
+            <div style={{ flex:1 }}>
+              <p style={{ color:'#aaa', fontSize:'0.78rem', margin:'0 0 6px' }}>#{activeTicket.ticketNumber}</p>
+              <h2 style={{ fontSize:'1.3rem', fontWeight:700, margin:'0 0 6px' }}>{activeTicket.title}</h2>
+              <p style={{ color:'#666', fontSize:'0.9rem', margin:'0 0 10px' }}>{activeTicket.description}</p>
+              {activeTicket.user && (
+                <p style={{ color:'#888', fontSize:'0.82rem', margin:0 }}>
+                  👤 {activeTicket.user.name} · {activeTicket.user.email}
+                  {activeTicket.category && ` · ${activeTicket.category.charAt(0).toUpperCase()+activeTicket.category.slice(1)}`}
+                </p>
+              )}
+            </div>
+            <div style={{ display:'flex', gap:8, flexWrap:'wrap', flexShrink:0 }}>
+              <span style={{ padding:'5px 12px', borderRadius:20, fontSize:'0.75rem', fontWeight:700, ...pc }}>
+                {activeTicket.priority.toUpperCase()}
+              </span>
+              <span style={{ padding:'5px 12px', borderRadius:20, fontSize:'0.75rem', fontWeight:700, ...sc }}>
+                {activeTicket.status.replace('-',' ').toUpperCase()}
+              </span>
+            </div>
+          </div>
+          {/* Status actions */}
+          <div style={{ display:'flex', gap:10, marginTop:16, flexWrap:'wrap' }}>
+            {activeTicket.status !== 'in-progress' && activeTicket.status !== 'resolved' && activeTicket.status !== 'closed' && (
+              <button onClick={() => handleStatus(activeTicket._id,'in-progress')}
+                style={{ padding:'8px 18px', background:'#fff3e0', color:'#f57c00', border:'none', borderRadius:8, cursor:'pointer', fontWeight:600, fontSize:'0.85rem' }}>
+                Mark In Progress
+              </button>
+            )}
+            {activeTicket.status !== 'resolved' && (
+              <button onClick={() => handleStatus(activeTicket._id,'resolved')}
+                style={{ padding:'8px 18px', background:'#e6fffa', color:'#32be8f', border:'none', borderRadius:8, cursor:'pointer', fontWeight:600, fontSize:'0.85rem' }}>
+                Mark Resolved
+              </button>
+            )}
+            {activeTicket.status !== 'closed' && (
+              <button onClick={() => handleStatus(activeTicket._id,'closed')}
+                style={{ padding:'8px 18px', background:'#f5f5f5', color:'#666', border:'none', borderRadius:8, cursor:'pointer', fontWeight:600, fontSize:'0.85rem' }}>
+                Close Ticket
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Messages */}
+        <div style={{ display:'flex', flexDirection:'column', gap:12, marginBottom:20 }}>
+          {activeTicket.messages.length === 0 && (
+            <div style={{ ...card, padding:28, textAlign:'center', color:'#bbb' }}>No messages yet.</div>
+          )}
+          {activeTicket.messages.map((msg, i) => {
+            const isAdmin = msg.sender === 'admin';
+            return (
+              <div key={i} style={{ display:'flex', justifyContent: isAdmin ? 'flex-end' : 'flex-start' }}>
+                <div style={{
+                  maxWidth:'75%', padding:'12px 16px',
+                  borderRadius: isAdmin ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                  background: isAdmin ? 'linear-gradient(135deg,#667eea,#764ba2)' : '#fff',
+                  color: isAdmin ? '#fff' : '#333',
+                  boxShadow:'0 2px 8px rgba(0,0,0,0.07)', fontSize:'0.9rem', lineHeight:1.5,
+                }}>
+                  <p style={{ margin:'0 0 4px', fontWeight:600, fontSize:'0.75rem', opacity:0.75 }}>
+                    {isAdmin ? '🛡️ Admin (You)' : `👤 ${activeTicket.user?.name || 'User'}`}
+                  </p>
+                  <p style={{ margin:0 }}>{msg.text}</p>
+                  <p style={{ margin:'6px 0 0', fontSize:'0.72rem', opacity:0.6, textAlign:'right' }}>
+                    {new Date(msg.createdAt).toLocaleString('en-IN', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Reply box */}
+        {!isResolved ? (
+          <div style={{ ...card, padding:20 }}>
+            <textarea value={replyText} onChange={e => setReplyText(e.target.value)}
+              placeholder="Write your reply to the user…" rows={3}
+              style={{ ...inputSt, resize:'vertical', marginBottom:12 }} />
+            <button onClick={handleReply} disabled={sending || !replyText.trim()}
+              style={{ padding:'11px 28px', background: sending || !replyText.trim() ? '#ccc' : 'linear-gradient(135deg,#667eea,#764ba2)', color:'#fff', border:'none', borderRadius:10, fontWeight:700, cursor: sending || !replyText.trim() ? 'not-allowed' : 'pointer', fontSize:'0.95rem' }}>
+              {sending ? 'Sending…' : 'Send Reply'}
+            </button>
+          </div>
+        ) : (
+          <div style={{ background:'#e6fffa', border:'1px solid #32be8f', borderRadius:12, padding:'16px 20px', color:'#0f9f6e', fontWeight:600, fontSize:'0.9rem' }}>
+            ✓ This ticket is {activeTicket.status}.
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── List view ────────────────────────────────────────────────────────────────
+  const STATUSES = ['all','open','in-progress','resolved','closed'];
+  const filtered = filter === 'all' ? tickets : tickets.filter(t => t.status === filter);
+  const counts   = STATUSES.reduce((acc, s) => {
+    acc[s] = s === 'all' ? tickets.length : tickets.filter(t => t.status === s).length;
+    return acc;
+  }, {});
 
   return (
     <div>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'30px' }}>
-        <h2 style={h2}>Support & Dispute Tickets</h2>
-        <button onClick={() => setShowForm(f => !f)}
-          style={{ padding:'12px 25px', background:'linear-gradient(135deg,#667eea,#764ba2)',
-            color:'white', border:'none', borderRadius:'10px', cursor:'pointer', fontWeight:'600' }}>
-          {showForm ? 'Cancel' : 'Create Ticket'}
-        </button>
+      <h2 style={h2}>Support & Dispute Tickets</h2>
+
+      {/* Filter tabs */}
+      <div style={{ display:'flex', gap:8, marginBottom:24, flexWrap:'wrap' }}>
+        {STATUSES.map(s => (
+          <button key={s} onClick={() => setFilter(s)}
+            style={{ padding:'8px 18px', borderRadius:20, border:'none', cursor:'pointer', fontWeight:600, fontSize:'0.82rem',
+              background: filter === s ? 'linear-gradient(135deg,#667eea,#764ba2)' : '#f0f0f0',
+              color: filter === s ? '#fff' : '#666' }}>
+            {s === 'all' ? 'All' : s.replace('-',' ').replace(/\b\w/g, c => c.toUpperCase())} ({counts[s]})
+          </button>
+        ))}
       </div>
 
-      {showForm && (
-        <div style={{ ...card, padding:'30px', marginBottom:'30px' }}>
-          <h3 style={{ marginBottom:'20px' }}>New Support Ticket</h3>
-          <form onSubmit={handleCreate}>
-            {[
-              { label:'Title', key:'title', type:'input' },
-              { label:'Description', key:'description', type:'textarea' },
-            ].map(({ label, key, type }) => (
-              <div key={key} style={{ marginBottom:'20px' }}>
-                <label style={{ display:'block', marginBottom:'8px', fontWeight:'500' }}>{label}</label>
-                {type === 'input'
-                  ? <input type="text" value={newTicket[key]}
-                      onChange={e => setNewTicket(p => ({ ...p, [key]: e.target.value }))}
-                      style={{ width:'100%', padding:'12px', border:'1px solid #ddd', borderRadius:'8px' }} required />
-                  : <textarea value={newTicket[key]}
-                      onChange={e => setNewTicket(p => ({ ...p, [key]: e.target.value }))}
-                      style={{ width:'100%', padding:'12px', border:'1px solid #ddd', borderRadius:'8px', minHeight:'100px', resize:'vertical' }} required />
-                }
-              </div>
-            ))}
-            <div style={{ marginBottom:'20px' }}>
-              <label style={{ display:'block', marginBottom:'8px', fontWeight:'500' }}>Priority</label>
-              <select value={newTicket.priority}
-                onChange={e => setNewTicket(p => ({ ...p, priority: e.target.value }))}
-                style={{ width:'100%', padding:'12px', border:'1px solid #ddd', borderRadius:'8px' }}>
-                {['low','medium','high','urgent'].map(v => <option key={v} value={v}>{v.charAt(0).toUpperCase()+v.slice(1)}</option>)}
-              </select>
-            </div>
-            <button type="submit"
-              style={{ padding:'12px 30px', background:'linear-gradient(135deg,#667eea,#764ba2)',
-                color:'white', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:'600' }}>
-              Create Ticket
-            </button>
-          </form>
-        </div>
-      )}
-
-      <div style={{ display:'grid', gap:'20px' }}>
-        {tickets.map(t => (
-          <div key={t._id} style={{ ...card, padding:'25px' }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'15px' }}>
-              <div style={{ flex:1 }}>
-                <h3 style={{ marginBottom:'8px' }}>{t.title}</h3>
-                <p style={{ color:'#666', fontSize:'0.9rem', marginBottom:'8px' }}>{t.description}</p>
-                <div style={{ display:'flex', gap:'12px', fontSize:'0.85rem', color:'#999' }}>
-                  <span>#{t.ticketNumber}</span><span>•</span>
-                  <span>{new Date(t.createdAt).toLocaleDateString()}</span>
-                  {t.user && <><span>•</span><span>{t.user.name}</span></>}
-                </div>
-              </div>
-              <div style={{ display:'flex', gap:'8px' }}>
-                <span style={{ ...priorityStyle(t.priority), fontWeight:'600', fontSize:'0.75rem' }}>
-                  {t.priority.toUpperCase()}
-                </span>
-                <span style={{ ...statusTicketStyle(t.status), fontWeight:'600', fontSize:'0.75rem' }}>
-                  {t.status.replace('-',' ').toUpperCase()}
-                </span>
-              </div>
-            </div>
-            {t.status !== 'resolved' && (
-              <div style={{ display:'flex', gap:'10px' }}>
-                <button onClick={() => handleStatus(t._id,'in-progress')}
-                  style={{ padding:'8px 20px', background:'#fff3e0', color:'#f57c00', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:'600', fontSize:'0.85rem' }}>
-                  In Progress
-                </button>
-                <button onClick={() => handleStatus(t._id,'resolved')}
-                  style={{ padding:'8px 20px', background:'#e6fffa', color:'#32be8f', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:'600', fontSize:'0.85rem' }}>
-                  Resolve
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
-        {tickets.length === 0 && (
+      <div style={{ display:'grid', gap:16 }}>
+        {filtered.length === 0 && (
           <div style={{ ...card, padding:'50px', textAlign:'center' }}>
-            <p style={{ color:'#999' }}>No tickets yet</p>
+            <p style={{ color:'#999' }}>No tickets in this category.</p>
           </div>
         )}
+        {filtered.map(t => {
+          const sc = ADMIN_STATUS_COLORS[t.status] || ADMIN_STATUS_COLORS.open;
+          const pc = ADMIN_PRIORITY_COLORS[t.priority];
+          const lastMsg = t.messages[t.messages.length - 1];
+          const unread  = t.messages.length > 0 && t.messages[t.messages.length - 1].sender === 'user';
+          return (
+            <div key={t._id} onClick={() => setActiveTicket(t)}
+              style={{ ...card, padding:'22px 26px', cursor:'pointer', borderLeft:`4px solid ${sc.color}`, transition:'box-shadow 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.boxShadow='0 4px 20px rgba(0,0,0,0.1)'}
+              onMouseLeave={e => e.currentTarget.style.boxShadow='0 5px 15px rgba(0,0,0,0.05)'}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:12 }}>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6, flexWrap:'wrap' }}>
+                    <span style={{ fontWeight:700, fontSize:'1rem' }}>{t.title}</span>
+                    {unread && (
+                      <span style={{ padding:'2px 8px', background:'#fdecea', color:'#c62828', borderRadius:20, fontSize:'0.7rem', fontWeight:700 }}>
+                        User replied
+                      </span>
+                    )}
+                  </div>
+                  <p style={{ color:'#888', fontSize:'0.85rem', margin:'0 0 10px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                    {lastMsg ? lastMsg.text : t.description}
+                  </p>
+                  <div style={{ display:'flex', gap:10, fontSize:'0.75rem', color:'#bbb', flexWrap:'wrap' }}>
+                    <span>#{t.ticketNumber}</span><span>·</span>
+                    {t.user && <><span>{t.user.name}</span><span>·</span></>}
+                    {t.category && <><span>{t.category.charAt(0).toUpperCase()+t.category.slice(1)}</span><span>·</span></>}
+                    <span>{new Date(t.updatedAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</span>
+                    <span>·</span><span>{t.messages.length} msg{t.messages.length !== 1 ? 's' : ''}</span>
+                  </div>
+                </div>
+                <div style={{ display:'flex', flexDirection:'column', gap:6, flexShrink:0 }}>
+                  <span style={{ padding:'4px 10px', borderRadius:20, fontSize:'0.72rem', fontWeight:700, ...sc }}>
+                    {t.status.replace('-',' ').toUpperCase()}
+                  </span>
+                  <span style={{ padding:'4px 10px', borderRadius:20, fontSize:'0.72rem', fontWeight:700, ...pc }}>
+                    {t.priority.toUpperCase()}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
