@@ -252,7 +252,12 @@ router.post('/forgot-password', async (req, res) => {
       user.resetOtp       = hashOtp(otp);
       user.resetOtpExpiry = new Date(Date.now() + 10 * 60 * 1000);
       await user.save();
-      await sendOtpEmail(cleanEmail, otp);
+      try {
+        await sendRegistrationOtpEmail(cleanEmail, otp);
+      } catch (mailErr) {
+        console.error('Forgot-password OTP email failed:', mailErr.message);
+        return res.status(500).json({ message: `OTP email failed: ${mailErr.message}` });
+      }
     }
     res.json({ success: true, message: 'If that email is registered, an OTP has been sent.' });
   } catch (err) {
