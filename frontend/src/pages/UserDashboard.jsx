@@ -1394,9 +1394,6 @@ const WishlistTab = () => {
           <div style={{ fontSize: '3rem', marginBottom: '16px' }}>♡</div>
           <h3 style={{ color: '#555', marginBottom: '8px' }}>Your wishlist is empty</h3>
           <p style={{ color: '#999', marginBottom: '24px' }}>Browse items and tap the heart to save them here</p>
-          <button onClick={() => navigate('/dashboard')} style={{ padding: '12px 32px', background: GREEN, color: 'white', border: 'none', borderRadius: '25px', cursor: 'pointer', fontWeight: '600' }}>
-            Browse Items
-          </button>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '24px' }}>
@@ -1521,9 +1518,6 @@ const CartTab = () => {
           <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🛒</div>
           <h3 style={{ color: '#555', marginBottom: '8px' }}>Your cart is empty</h3>
           <p style={{ color: '#999', marginBottom: '24px' }}>Add items to cart from product pages to rent them</p>
-          <button onClick={() => navigate('/dashboard')} style={{ padding: '12px 32px', background: GREEN, color: 'white', border: 'none', borderRadius: '25px', cursor: 'pointer', fontWeight: '600' }}>
-            Browse Items
-          </button>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
