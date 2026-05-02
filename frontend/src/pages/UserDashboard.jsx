@@ -572,11 +572,11 @@ const BrowseItems = ({ onGoToProfile }) => {
                 width: '100%', padding: '10px', background: GREEN, color: 'white',
                 border: 'none', borderRadius: '8px', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer'
               }}>View Details</button>
-              {item.isVerified && (
+              {/*item.isVerified && (
                 <div style={{ marginTop: '10px', padding: '9px', background: GREEN_LIGHT, borderRadius: '8px', fontSize: '0.78rem', color: GREEN, textAlign: 'center' }}>
                   Safety Tutorial Available
                 </div>
-              )}
+              )*/}
             </div>
           </div>
         )) : (
