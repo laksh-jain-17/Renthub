@@ -71,27 +71,29 @@ const emailUserTicketReceived = async ({ userEmail, userName, subject }) => {
 // ── Routes ─────────────────────────────────────────────────────
 
 // POST /api/tickets
+// POST /api/tickets
 router.post('/', authenticateToken, async (req, res) => {
   try {
-    const { subject, message, category } = req.body;
+    const { title, description, category, priority } = req.body; // ✅ match frontend
 
-    if (!subject || !message)
-      return res.status(400).json({ message: 'Subject and message are required' });
+    if (!title || !description)
+      return res.status(400).json({ message: 'Title and description are required' });
 
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     const ticket = new Ticket({
-      user:     req.user.id,
-      subject,
-      message,
-      category: category || 'other',
+      user,
+      title,
+      description,
+      category: category || 'general',
+      priority:  priority || 'medium',
       status:   'open',
     });
     await ticket.save();
 
-    await emailAdminNewTicket({ userName: user.name, subject, message, category: category || 'other' });
-    await emailUserTicketReceived({ userEmail: user.email, userName: user.name, subject });
+    await emailAdminNewTicket({ userName: user.name, subject: title, message: description, category: category || 'general' });
+    await emailUserTicketReceived({ userEmail: user.email, userName: user.name, subject: title });
 
     res.status(201).json({ success: true, ticket });
   } catch (err) { res.status(500).json({ message: err.message }); }
